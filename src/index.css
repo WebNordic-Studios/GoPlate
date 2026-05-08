@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-gp-bg text-gp-charcoal font-sans antialiased;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, #F97316 25%, transparent);
+  }
+}
+
+@layer utilities {
+  .gp-container {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .gp-glass {
+    @apply bg-white/70 backdrop-blur-glass border border-white/60 shadow-natural;
+  }
+
+  .gp-focus {
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-gp-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-gp-bg;
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}

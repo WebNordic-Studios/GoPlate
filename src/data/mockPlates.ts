@@ -1,0 +1,191 @@
+import type { Plate } from '../types'
+
+export const SEED_PLATES: Plate[] = [
+  {
+    id: 'seed_ginger_miso_salmon',
+    name: 'Ginger-Miso Salmon Bowl',
+    category: 'Hot Meals',
+    priceCents: 1499,
+    distanceMiles: 0.4,
+    rating: 4.9,
+    ratingCount: 221,
+    pickupWindow: 'Ready 5:30 PM – 7:00 PM',
+    zip: '10012',
+    geo: { lat: 40.725, lng: -73.998, areaLabel: 'SoHo, NYC' },
+    images: [
+      'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=1400&q=80',
+      'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=1400&q=80',
+    ],
+    ingredients: [
+      'Atlantic salmon',
+      'White miso',
+      'Ginger',
+      'Jasmine rice',
+      'Sesame cucumbers',
+      'Pickled carrots',
+      'Scallions',
+    ],
+    cooksNote:
+      'I glaze the salmon right before pickup so it stays glossy and caramelized. Mild heat, big flavor.',
+    cook: {
+      id: 'cook_sarah_m',
+      name: 'Sarah M.',
+      avatarUrl:
+        'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=256&q=80',
+      bio: 'Seasonal bowls and bright sauces. Former line cook turned neighborhood meal-prepper.',
+    },
+    portionsAvailable: 6,
+  },
+  {
+    id: 'seed_sourdough_country_loaf',
+    name: '72-Hour Country Sourdough',
+    category: 'Bakery',
+    priceCents: 899,
+    distanceMiles: 1.2,
+    rating: 4.8,
+    ratingCount: 144,
+    pickupWindow: 'Ready 8:00 AM – 10:30 AM',
+    zip: '11211',
+    geo: { lat: 40.7128, lng: -73.9535, areaLabel: 'Williamsburg, NYC' },
+    images: [
+      'https://images.unsplash.com/photo-1549931319-a545dcf3bc73?auto=format&fit=crop&w=1400&q=80',
+      'https://images.unsplash.com/photo-1528825871115-3581a5387919?auto=format&fit=crop&w=1400&q=80',
+    ],
+    ingredients: ['Bread flour', 'Whole wheat', 'Sea salt', 'Starter culture', 'Water'],
+    cooksNote:
+      'Long-fermented for a crackly crust and a soft, tangy crumb. Perfect for butter, jam, or grilled cheese.',
+    cook: {
+      id: 'cook_marco_l',
+      name: 'Marco L.',
+      avatarUrl:
+        'https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?auto=format&fit=crop&w=256&q=80',
+      bio: 'Slow bread, small batches. Flour nerd. Expect crisp crusts and a warm doorstep handoff.',
+    },
+    portionsAvailable: 10,
+  },
+  {
+    id: 'seed_vegan_korma',
+    name: 'Coconut Cashew Veggie Korma',
+    category: 'Vegan',
+    priceCents: 1299,
+    distanceMiles: 0.7,
+    rating: 4.7,
+    ratingCount: 88,
+    pickupWindow: 'Ready 6:00 PM – 8:00 PM',
+    zip: '94110',
+    geo: { lat: 37.7599, lng: -122.4148, areaLabel: 'Mission, SF' },
+    images: [
+      'https://images.unsplash.com/photo-1604908554027-0d17d11e9d92?auto=format&fit=crop&w=1400&q=80',
+      'https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=1400&q=80',
+    ],
+    ingredients: [
+      'Cauliflower',
+      'Peas',
+      'Carrots',
+      'Coconut milk',
+      'Cashews',
+      'Garam masala',
+      'Basmati rice',
+    ],
+    cooksNote:
+      'Creamy without dairy — I blend toasted cashews into the sauce for that silky restaurant finish.',
+    cook: {
+      id: 'cook_priya_s',
+      name: 'Priya S.',
+      avatarUrl:
+        'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=256&q=80',
+      bio: 'Plant-forward comfort food with bold spices and a light touch. Always dairy-free when possible.',
+    },
+    portionsAvailable: 5,
+  },
+  {
+    id: 'seed_chicken_tinga_tacos',
+    name: 'Smoky Chicken Tinga Tacos (4)',
+    category: 'Hot Meals',
+    priceCents: 1399,
+    distanceMiles: 2.3,
+    rating: 4.6,
+    ratingCount: 63,
+    pickupWindow: 'Ready 4:45 PM – 6:30 PM',
+    zip: '60614',
+    geo: { lat: 41.9227, lng: -87.6513, areaLabel: 'Lincoln Park, Chicago' },
+    images: [
+      'https://images.unsplash.com/photo-1552332386-f8dd00dc2f85?auto=format&fit=crop&w=1400&q=80',
+      'https://images.unsplash.com/photo-1599974579688-8dbdd335c77f?auto=format&fit=crop&w=1400&q=80',
+    ],
+    ingredients: [
+      'Shredded chicken',
+      'Chipotle',
+      'Tomato',
+      'Onions',
+      'Corn tortillas',
+      'Pickled red onions',
+      'Cilantro-lime crema',
+    ],
+    cooksNote:
+      'Smoky, saucy, and weeknight-friendly. Tortillas kept separate so they stay warm and pliable.',
+    cook: {
+      id: 'cook_luis_a',
+      name: 'Luis A.',
+      avatarUrl:
+        'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=256&q=80',
+      bio: 'Taco-night specialist. I’m obsessive about salsa balance and warm tortillas.',
+    },
+    portionsAvailable: 8,
+  },
+  {
+    id: 'seed_brown_butter_cookie_box',
+    name: 'Brown Butter Cookie Box (12)',
+    category: 'Desserts',
+    priceCents: 1199,
+    distanceMiles: 0.9,
+    rating: 4.9,
+    ratingCount: 197,
+    pickupWindow: 'Ready 2:00 PM – 5:00 PM',
+    zip: '30309',
+    geo: { lat: 33.7896, lng: -84.3881, areaLabel: 'Midtown, Atlanta' },
+    images: [
+      'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?auto=format&fit=crop&w=1400&q=80',
+      'https://images.unsplash.com/photo-1519869325930-281384150729?auto=format&fit=crop&w=1400&q=80',
+    ],
+    ingredients: ['Brown butter', 'Vanilla', 'Dark chocolate', 'Flour', 'Eggs', 'Sea salt'],
+    cooksNote:
+      'Crisp edges, chewy centers, and a hint of caramel from browned butter. Baked this morning.',
+    cook: {
+      id: 'cook_noa_k',
+      name: 'Noa K.',
+      avatarUrl:
+        'https://images.unsplash.com/photo-1527980965255-d3b416303d12?auto=format&fit=crop&w=256&q=80',
+      bio: 'Micro-bakery vibe: small drops, perfect texture. Brown butter is my love language.',
+    },
+    portionsAvailable: 12,
+  },
+  {
+    id: 'seed_cardamom_morning_buns',
+    name: 'Cardamom Morning Buns (6)',
+    category: 'Bakery',
+    priceCents: 1099,
+    distanceMiles: 1.6,
+    rating: 4.8,
+    ratingCount: 92,
+    pickupWindow: 'Ready 7:30 AM – 10:00 AM',
+    zip: '98103',
+    geo: { lat: 47.6619, lng: -122.3426, areaLabel: 'Fremont, Seattle' },
+    images: [
+      'https://images.unsplash.com/photo-1545396872-a6682fc218ab?auto=format&fit=crop&w=1400&q=80',
+      'https://images.unsplash.com/photo-1509440159598-8b9b6a3e8b2d?auto=format&fit=crop&w=1400&q=80',
+    ],
+    ingredients: ['Laminated dough', 'Cardamom sugar', 'Orange zest', 'Butter', 'Sea salt'],
+    cooksNote:
+      'A little Scandinavian, a little sunny-citrus. I coat them while warm so the sugar turns glossy.',
+    cook: {
+      id: 'cook_hanna_r',
+      name: 'Hanna R.',
+      avatarUrl:
+        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=256&q=80',
+      bio: 'Cozy Nordic bakes, bright citrus, and flaky layers. Morning bun evangelist.',
+    },
+    portionsAvailable: 7,
+  },
+]
+
