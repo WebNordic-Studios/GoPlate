@@ -1,14 +1,16 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
         gp: {
           primary: '#F97316', // Vibrant Saffron
-          secondary: '#064E3B', // Deep Forest Green
-          bg: '#FDFCF7', // Warm Oat
-          charcoal: '#1F2937', // Soft charcoal
+          secondary: 'rgb(var(--gp-secondary) / <alpha-value>)',
+          bg: 'rgb(var(--gp-bg) / <alpha-value>)',
+          surface: 'rgb(var(--gp-surface) / <alpha-value>)',
+          charcoal: 'rgb(var(--gp-charcoal) / <alpha-value>)',
         },
       },
       borderRadius: {
@@ -30,4 +32,3 @@ export default {
   },
   plugins: [],
 }
-

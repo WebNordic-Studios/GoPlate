@@ -5,6 +5,7 @@ export const SEED_PLATES: Plate[] = [
     id: 'seed_ginger_miso_salmon',
     name: 'Ginger-Miso Salmon Bowl',
     category: 'Hot Meals',
+    cuisine: 'Japanese',
     priceCents: 1499,
     distanceMiles: 0.4,
     rating: 4.9,
@@ -33,8 +34,13 @@ export const SEED_PLATES: Plate[] = [
       avatarUrl:
         'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=256&q=80',
       bio: 'Seasonal bowls and bright sauces. Former line cook turned neighborhood meal-prepper.',
+      verified: true,
     },
     portionsAvailable: 6,
+    dietary: ['dairy-free'],
+    allergens: ['fish', 'soy', 'sesame'],
+    spice: 1,
+    createdAtIso: '2026-05-08T15:00:00.000Z',
   },
   {
     id: 'seed_sourdough_country_loaf',
@@ -60,8 +66,14 @@ export const SEED_PLATES: Plate[] = [
       avatarUrl:
         'https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?auto=format&fit=crop&w=256&q=80',
       bio: 'Slow bread, small batches. Flour nerd. Expect crisp crusts and a warm doorstep handoff.',
+      verified: true,
     },
     portionsAvailable: 10,
+    cuisine: 'French',
+    dietary: ['vegetarian', 'dairy-free'],
+    allergens: ['gluten'],
+    spice: 0,
+    createdAtIso: '2026-05-10T07:00:00.000Z',
   },
   {
     id: 'seed_vegan_korma',
@@ -95,8 +107,14 @@ export const SEED_PLATES: Plate[] = [
       avatarUrl:
         'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=256&q=80',
       bio: 'Plant-forward comfort food with bold spices and a light touch. Always dairy-free when possible.',
+      verified: true,
     },
     portionsAvailable: 5,
+    cuisine: 'Indian',
+    dietary: ['vegan', 'vegetarian', 'gluten-free', 'dairy-free'],
+    allergens: ['tree-nuts'],
+    spice: 3,
+    createdAtIso: '2026-05-09T17:30:00.000Z',
   },
   {
     id: 'seed_chicken_tinga_tacos',
@@ -132,6 +150,13 @@ export const SEED_PLATES: Plate[] = [
       bio: 'Taco-night specialist. I’m obsessive about salsa balance and warm tortillas.',
     },
     portionsAvailable: 8,
+    cuisine: 'Mexican',
+    dietary: ['gluten-free', 'nut-free'],
+    allergens: ['dairy'],
+    spice: 3,
+    createdAtIso: '2026-05-11T16:00:00.000Z',
+    deliveryAvailable: true,
+    deliveryFeeCents: 399,
   },
   {
     id: 'seed_brown_butter_cookie_box',
@@ -157,8 +182,14 @@ export const SEED_PLATES: Plate[] = [
       avatarUrl:
         'https://images.unsplash.com/photo-1527980965255-d3b416303d12?auto=format&fit=crop&w=256&q=80',
       bio: 'Micro-bakery vibe: small drops, perfect texture. Brown butter is my love language.',
+      verified: true,
     },
     portionsAvailable: 12,
+    cuisine: 'American',
+    dietary: ['vegetarian'],
+    allergens: ['gluten', 'dairy', 'eggs'],
+    spice: 0,
+    createdAtIso: '2026-05-11T13:00:00.000Z',
   },
   {
     id: 'seed_cardamom_morning_buns',
@@ -186,6 +217,11 @@ export const SEED_PLATES: Plate[] = [
       bio: 'Cozy Nordic bakes, bright citrus, and flaky layers. Morning bun evangelist.',
     },
     portionsAvailable: 7,
+    cuisine: 'Mediterranean',
+    dietary: ['vegetarian'],
+    allergens: ['gluten', 'dairy', 'eggs'],
+    spice: 0,
+    createdAtIso: '2026-05-11T07:00:00.000Z',
   },
 ]
 

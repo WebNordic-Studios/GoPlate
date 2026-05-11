@@ -5,6 +5,18 @@
 @layer base {
   :root {
     color-scheme: light;
+    --gp-bg: 253 252 247;        /* Warm Oat */
+    --gp-surface: 255 255 255;   /* card surface */
+    --gp-charcoal: 31 41 55;     /* text */
+    --gp-secondary: 6 78 59;     /* Deep Forest Green */
+  }
+
+  html.dark {
+    color-scheme: dark;
+    --gp-bg: 17 20 24;
+    --gp-surface: 28 31 36;
+    --gp-charcoal: 232 234 238;
+    --gp-secondary: 52 211 153;
   }
 
   html,
@@ -19,15 +31,69 @@
   ::selection {
     background: color-mix(in srgb, #F97316 25%, transparent);
   }
+
+  /* In dark mode, swap pure-white backgrounds (used widely as cards) to the
+     surface token so existing markup adapts without a global rewrite. */
+  html.dark .bg-white {
+    background-color: rgb(var(--gp-surface)) !important;
+  }
+  html.dark .bg-white\/70 {
+    background-color: rgb(var(--gp-surface) / 0.7) !important;
+  }
+  html.dark .bg-white\/80 {
+    background-color: rgb(var(--gp-surface) / 0.8) !important;
+  }
+  html.dark .bg-white\/85 {
+    background-color: rgb(var(--gp-surface) / 0.85) !important;
+  }
+  html.dark .bg-white\/90 {
+    background-color: rgb(var(--gp-surface) / 0.9) !important;
+  }
+  html.dark .bg-white\/60 {
+    background-color: rgb(var(--gp-surface) / 0.6) !important;
+  }
+  html.dark .ring-black\/5 {
+    --tw-ring-color: rgb(255 255 255 / 0.08) !important;
+  }
+  html.dark .ring-black\/10 {
+    --tw-ring-color: rgb(255 255 255 / 0.12) !important;
+  }
+  html.dark .border-black\/5 {
+    border-color: rgb(255 255 255 / 0.08) !important;
+  }
+  html.dark .hover\:bg-black\/5:hover {
+    background-color: rgb(255 255 255 / 0.06) !important;
+  }
+  html.dark .active\:bg-black\/10:active,
+  html.dark .hover\:bg-black\/10:hover {
+    background-color: rgb(255 255 255 / 0.1) !important;
+  }
+  html.dark .bg-black\/55 {
+    background-color: rgb(0 0 0 / 0.75) !important;
+  }
 }
 
 @layer utilities {
+  .gp-reduce-motion *,
+  .gp-reduce-motion *::before,
+  .gp-reduce-motion *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .gp-strong-focus .gp-focus:focus-visible {
+    outline: 3px solid rgb(249 115 22 / 0.85);
+    outline-offset: 3px;
+  }
+
   .gp-container {
     @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
   }
 
   .gp-glass {
-    @apply bg-white/70 backdrop-blur-glass border border-white/60 shadow-natural;
+    @apply bg-gp-surface/70 backdrop-blur-glass border border-white/60 shadow-natural;
   }
 
   .gp-focus {

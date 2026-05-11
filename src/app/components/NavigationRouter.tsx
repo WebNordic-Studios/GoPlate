@@ -1,4 +1,4 @@
-import { Home, Search, ShoppingBag, User } from 'lucide-react'
+import { Cog, Home, Search, ShoppingBag, User } from 'lucide-react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { useMemo, useState } from 'react'
@@ -7,12 +7,26 @@ type Props = {
   rightSlot?: ReactNode
 }
 
-function TopNavLink({ to, children }: { to: string; children: ReactNode }) {
+function TopNavLink({
+  to,
+  children,
+  className = '',
+  'aria-label': ariaLabel,
+  title,
+}: {
+  to: string
+  children: ReactNode
+  className?: string
+  'aria-label'?: string
+  title?: string
+}) {
   return (
     <NavLink
       to={to}
+      aria-label={ariaLabel}
+      title={title}
       className={({ isActive }) =>
-        `gp-focus rounded-2xl px-3 py-2 text-sm font-semibold transition ${
+        `gp-focus rounded-2xl px-3 py-2 text-sm font-semibold transition ${className} ${
           isActive ? 'bg-black/5 text-gp-charcoal' : 'text-gp-charcoal/70 hover:bg-black/5'
         }`
       }
@@ -75,10 +89,13 @@ export function NavigationShellRouter({ rightSlot }: Props) {
 
               <nav className="hidden items-center gap-2 lg:flex">
               <TopNavLink to="/market">Find Food</TopNavLink>
-              <TopNavLink to="/search">Search</TopNavLink>
+              <TopNavLink to="/feed">Feed</TopNavLink>
               <TopNavLink to="/map">Map</TopNavLink>
               <TopNavLink to="/cook">Start Cooking</TopNavLink>
-              <TopNavLink to="/settings">Settings</TopNavLink>
+              <TopNavLink to="/settings" aria-label="Settings" title="Settings" className="px-2.5">
+                <Cog size={20} className="text-gp-charcoal/75" aria-hidden />
+                <span className="sr-only">Settings</span>
+              </TopNavLink>
               </nav>
             </div>
 

@@ -1,6 +1,7 @@
 import { MapPin, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
+import { useSettings } from '../../state/settings'
 
 type Props = {
   initialZip?: string
@@ -10,6 +11,9 @@ type Props = {
 export function Hero({ initialZip = '', onSearchZip }: Props) {
   const [zip, setZip] = useState(initialZip)
   const [focused, setFocused] = useState(false)
+  const { settings } = useSettings()
+  const systemReduce = useReducedMotion() === true
+  const reduceMotion = settings.reduceMotion || systemReduce
 
   const zipHint = useMemo(() => (zip.trim() ? zip.trim() : 'Zip Code'), [zip])
 
@@ -55,35 +59,39 @@ export function Hero({ initialZip = '', onSearchZip }: Props) {
 
                 <motion.button
                   type="submit"
-                  whileTap={{ scale: 0.98 }}
+                  whileTap={reduceMotion ? undefined : { scale: 0.98 }}
                   className="gp-focus hidden rounded-2xl bg-gp-primary px-4 py-3 text-sm font-semibold text-white shadow-natural sm:inline-flex"
                 >
                   Search
                 </motion.button>
 
-                <div
-                  className={`mr-2 grid h-10 w-10 place-items-center rounded-2xl transition ${
-                    focused ? 'bg-black/5 text-gp-secondary' : 'text-gp-charcoal/50'
-                  }`}
-                  aria-label="Current location"
-                  title={`Use current location for ${zipHint}`}
-                >
-                  <MapPin size={18} />
+                {settings.enableLocationHints ? (
+                  <div
+                    className={`mr-2 grid h-10 w-10 place-items-center rounded-2xl transition ${
+                      focused ? 'bg-black/5 text-gp-secondary' : 'text-gp-charcoal/50'
+                    }`}
+                    aria-label="Current location"
+                    title={`Use current location for ${zipHint}`}
+                  >
+                    <MapPin size={18} />
+                  </div>
+                ) : null}
+              </div>
+              {settings.enableLocationHints ? (
+                <div className="mt-2 text-xs text-gp-charcoal/60">
+                  Tip: Try <span className="font-semibold">10012</span> (Manhattan) or{' '}
+                  <span className="font-semibold">94110</span> (SF).
                 </div>
-              </div>
-              <div className="mt-2 text-xs text-gp-charcoal/60">
-                Tip: Try <span className="font-semibold">10012</span> (Manhattan) or{' '}
-                <span className="font-semibold">94110</span> (SF).
-              </div>
+              ) : null}
             </form>
           </div>
 
           <div className="relative">
             <div className="absolute -inset-8 -z-10 rounded-[2rem] bg-gradient-to-br from-gp-primary/15 via-white/0 to-gp-secondary/10 blur-2xl" />
             <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
+              initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+              animate={reduceMotion ? false : { opacity: 1, y: 0 }}
+              transition={{ duration: reduceMotion ? 0 : 0.6 }}
               className="overflow-hidden rounded-[2rem] shadow-lift ring-1 ring-black/5"
             >
               <img
@@ -92,10 +100,12 @@ export function Hero({ initialZip = '', onSearchZip }: Props) {
                 src="https://images.unsplash.com/photo-1543353071-873f17a7a088?auto=format&fit=crop&w=1800&q=80"
               />
             </motion.div>
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <Stat label="Today’s pickups" value="38" />
-              <Stat label="Avg. rating" value="★ 4.8" />
-            </div>
+            {settings.showHeroStats ? (
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <Stat label="Today’s pickups" value="38" />
+                <Stat label="Avg. rating" value="★ 4.8" />
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
@@ -111,4 +121,3 @@ function Stat({ label, value }: { label: string; value: string }) {
     </div>
   )
 }
-
