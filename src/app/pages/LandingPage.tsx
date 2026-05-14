@@ -12,8 +12,10 @@ import {
   Sparkles,
   UtensilsCrossed,
 } from 'lucide-react'
+import { useEffect, useRef } from 'react'
 import { Hero } from '../components/Hero'
 import { Button } from '../../ui/Button'
+import { attachHorizontalWheelScroll } from '../../lib/horizontalWheelScroll'
 import { useMarketplaceContext } from '../../state/marketplaceContext'
 import { useRecentlyViewed } from '../../state/recentlyViewed'
 import { useNavigate } from 'react-router-dom'
@@ -31,6 +33,13 @@ export function LandingPage({
   const navigate = useNavigate()
   const { ids } = useRecentlyViewed()
   const recent = ids.map((id) => byId.get(id)).filter(Boolean) as import('../../types').Plate[]
+  const recentRailRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = recentRailRef.current
+    if (!el) return
+    return attachHorizontalWheelScroll(el)
+  }, [recent.length])
+
   return (
     <div>
       <Hero initialZip={zip} onSearchZip={onSearchZip} />
@@ -50,7 +59,10 @@ export function LandingPage({
                 See all
               </button>
             </div>
-            <div className="no-scrollbar -mx-2 mt-4 flex gap-3 overflow-x-auto px-2">
+            <div
+              ref={recentRailRef}
+              className="-mx-2 mt-4 flex gap-3 overflow-x-auto overscroll-x-contain px-2 py-1 touch-pan-x [-webkit-overflow-scrolling:touch] items-stretch"
+            >
               {recent.slice(0, 8).map((p) => (
                 <button
                   key={p.id}

@@ -1,6 +1,7 @@
 import { ArrowDownNarrowWide, MapPin, X } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Cuisine, DietaryTag } from '../../types'
+import { attachHorizontalWheelScroll } from '../../lib/horizontalWheelScroll'
 import { CUISINES, DIETARY_TAGS } from '../../lib/taxonomy'
 import { SORT_LABEL, type SortMode } from '../../lib/sortPlates'
 
@@ -28,7 +29,17 @@ export function FilterBar({
   locating?: boolean
 }) {
   const [openSort, setOpenSort] = useState(false)
+  const dietaryScrollRef = useRef<HTMLDivElement>(null)
+  const cuisineScrollRef = useRef<HTMLDivElement>(null)
   const activeCount = dietary.size + cuisines.size
+
+  useEffect(() => {
+    const cleanups: (() => void)[] = []
+    if (dietaryScrollRef.current) cleanups.push(attachHorizontalWheelScroll(dietaryScrollRef.current))
+    if (cuisineScrollRef.current) cleanups.push(attachHorizontalWheelScroll(cuisineScrollRef.current))
+    return () => cleanups.forEach((fn) => fn())
+  }, [])
+
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -95,7 +106,10 @@ export function FilterBar({
 
       <div>
         <div className="text-xs font-semibold uppercase tracking-wide text-gp-charcoal/50">Dietary</div>
-        <div className="no-scrollbar -mx-1 mt-1.5 flex flex-wrap gap-1.5 px-1">
+        <div
+          ref={dietaryScrollRef}
+          className="-mx-1 mt-1.5 flex gap-1.5 overflow-x-auto overscroll-x-contain px-1 py-2 touch-pan-x [-webkit-overflow-scrolling:touch] items-center"
+        >
           {DIETARY_TAGS.map((t) => {
             const active = dietary.has(t.id)
             return (
@@ -103,7 +117,7 @@ export function FilterBar({
                 key={t.id}
                 type="button"
                 onClick={() => onToggleDietary(t.id)}
-                className={`gp-focus rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition ${
+                className={`gp-focus shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition ${
                   active
                     ? 'bg-gp-secondary text-white ring-gp-secondary/60'
                     : 'bg-gp-surface text-gp-charcoal/75 ring-black/10 hover:bg-black/5'
@@ -118,7 +132,10 @@ export function FilterBar({
 
       <div>
         <div className="text-xs font-semibold uppercase tracking-wide text-gp-charcoal/50">Cuisine</div>
-        <div className="no-scrollbar -mx-1 mt-1.5 flex gap-1.5 overflow-x-auto px-1 pb-1">
+        <div
+          ref={cuisineScrollRef}
+          className="-mx-1 mt-1.5 flex gap-1.5 overflow-x-auto overscroll-x-contain px-1 py-2 touch-pan-x [-webkit-overflow-scrolling:touch] items-center"
+        >
           {CUISINES.map((c) => {
             const active = cuisines.has(c)
             return (

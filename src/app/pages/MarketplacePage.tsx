@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Compass } from 'lucide-react'
 import type { Category, Cuisine, DietaryTag, Plate } from '../../types'
 import { CategoryRibbon } from '../components/CategoryRibbon'
@@ -8,6 +8,7 @@ import { sortPlates, type SortMode } from '../../lib/sortPlates'
 import { EmptyState } from '../../ui/EmptyState'
 import { Button } from '../../ui/Button'
 import { nearestZip, requestUserLocation } from '../../lib/geo'
+import { attachHorizontalWheelScroll } from '../../lib/horizontalWheelScroll'
 import { useToast } from '../../ui/Toast'
 
 export function MarketplacePage({
@@ -228,7 +229,15 @@ function CollectionRail({
   plates: Plate[]
   onOpenPlate: (plateId: string) => void
 }) {
+  const railRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = railRef.current
+    if (!el) return
+    return attachHorizontalWheelScroll(el)
+  }, [])
+
   if (plates.length === 0) return null
+
   return (
     <section>
       <div className="flex items-end justify-between gap-3">
@@ -240,7 +249,10 @@ function CollectionRail({
           {plates.length}
         </span>
       </div>
-      <div className="no-scrollbar -mx-4 mt-4 flex gap-4 overflow-x-auto px-4 pb-2">
+      <div
+        ref={railRef}
+        className="-mx-4 mt-4 flex gap-4 overflow-x-auto overscroll-x-contain px-4 py-2 touch-pan-x [-webkit-overflow-scrolling:touch] items-stretch"
+      >
         {plates.map((p) => (
           <button
             key={p.id}

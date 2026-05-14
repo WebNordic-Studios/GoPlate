@@ -228,7 +228,7 @@ export function MapPage({
 
       <div className="mt-6 grid gap-6 lg:grid-cols-12 lg:items-start">
         <div className="lg:col-span-8">
-          <div className="overflow-hidden rounded-[2rem] bg-white shadow-natural ring-1 ring-black/5">
+          <div className="relative isolate z-0 overflow-hidden rounded-[2rem] bg-white shadow-natural ring-1 ring-black/5">
             <div className="h-[52vh] min-h-[360px] lg:h-[min(68vh,640px)]">
               <div ref={mapEl} className="h-full w-full" />
             </div>

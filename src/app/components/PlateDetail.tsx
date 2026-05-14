@@ -8,9 +8,10 @@ import {
   Star,
   UserPlus2,
 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Plate, Review } from '../../types'
 import { formatDistanceBadge, formatMoney, timeAgo } from '../../lib/format'
+import { attachHorizontalWheelScroll } from '../../lib/horizontalWheelScroll'
 import { useSettings } from '../../state/settings'
 import { Button } from '../../ui/Button'
 import { AllergenChip, DietaryBadge, SpiceMeter, VerifiedBadge } from '../../ui/Badges'
@@ -67,6 +68,13 @@ export function PlateDetail({
     return () => window.removeEventListener('keydown', onKey)
   }, [next, prev])
 
+  const thumbStripRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = thumbStripRef.current
+    if (!el) return
+    return attachHorizontalWheelScroll(el)
+  }, [plate.id])
+
   return (
     <div className="grid gap-0 md:grid-cols-2">
       <div className="border-b border-black/5 md:border-b-0 md:border-r md:border-black/5">
@@ -111,7 +119,10 @@ export function PlateDetail({
             </>
           ) : null}
         </div>
-        <div className="no-scrollbar flex gap-2 overflow-x-auto p-4">
+        <div
+          ref={thumbStripRef}
+          className="flex gap-2 overflow-x-auto overscroll-x-contain p-4 py-3 touch-pan-x [-webkit-overflow-scrolling:touch] items-center"
+        >
           {plate.images.map((url, i) => {
             const active = i === imgIdx
             return (

@@ -16,10 +16,11 @@ import {
   Upload,
   X,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Allergen, Cuisine, DietaryTag, Plate, SpiceLevel, User } from '../../types'
 import { ALLERGENS, CUISINES, DIETARY_TAGS } from '../../lib/taxonomy'
 import { geoForZip } from '../../lib/geo'
+import { attachHorizontalWheelScroll } from '../../lib/horizontalWheelScroll'
 import { Button } from '../../ui/Button'
 import { Modal } from '../../ui/Modal'
 
@@ -737,8 +738,18 @@ function Stepper({ step }: { step: number }) {
     { title: 'Allergens + schedule', icon: <AlertTriangle size={16} /> },
   ]
 
+  const scrollRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    return attachHorizontalWheelScroll(el)
+  }, [])
+
   return (
-    <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1">
+    <div
+      ref={scrollRef}
+      className="-mx-1 flex gap-2 overflow-x-auto overscroll-x-contain px-1 py-1 touch-pan-x [-webkit-overflow-scrolling:touch] items-center"
+    >
       {steps.map((s, i) => {
         const active = i === step
         const done = i < step

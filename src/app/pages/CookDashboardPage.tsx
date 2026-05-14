@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { ChefHat, DollarSign, Eye, ShoppingBag, Sparkles, Star, TrendingUp } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import type { Order, Plate, User } from '../../types'
@@ -6,6 +6,7 @@ import { Button } from '../../ui/Button'
 import { EmptyState } from '../../ui/EmptyState'
 import { useSettings } from '../../state/settings'
 import { formatMoney } from '../../lib/format'
+import { attachHorizontalWheelScroll } from '../../lib/horizontalWheelScroll'
 
 export function CookDashboardPage({
   user,
@@ -60,6 +61,13 @@ export function CookDashboardPage({
       draftCount: myPlates.filter((p) => p.isDraft).length,
     }
   }, [myPlates, myOrders, myPlateIds, views])
+
+  const tableScrollRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = tableScrollRef.current
+    if (!el) return
+    return attachHorizontalWheelScroll(el)
+  }, [])
 
   if (myPlates.length === 0) {
     return (
@@ -157,7 +165,8 @@ export function CookDashboardPage({
       <div className="mt-8">
         <div className="font-display text-lg font-semibold">All your listings</div>
         <div className="mt-3 overflow-hidden rounded-2xl ring-1 ring-black/5">
-          <table className="w-full text-sm">
+          <div ref={tableScrollRef} className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
+            <table className="w-full min-w-[640px] text-sm">
             <thead className="bg-gp-surface text-xs uppercase tracking-wide text-gp-charcoal/55">
               <tr>
                 <th className="px-4 py-3 text-left">Plate</th>
@@ -208,6 +217,7 @@ export function CookDashboardPage({
               })}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
     </div>
