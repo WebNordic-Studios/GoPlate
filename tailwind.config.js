@@ -6,7 +6,7 @@ export default {
     extend: {
       colors: {
         gp: {
-          primary: '#F97316', // Vibrant Saffron
+          primary: '#40C9B1', // Brand teal (logo)
           secondary: 'rgb(var(--gp-secondary) / <alpha-value>)',
           bg: 'rgb(var(--gp-bg) / <alpha-value>)',
           surface: 'rgb(var(--gp-surface) / <alpha-value>)',

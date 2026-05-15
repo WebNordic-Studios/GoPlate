@@ -1,3 +1,4 @@
+import { GoPlateLogoMark } from '../../ui/GoPlateLogo'
 import { MapPin, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
@@ -22,6 +23,14 @@ export function Hero({ initialZip = '', onSearchZip }: Props) {
       <div className="gp-container py-10 sm:py-14">
         <div className="grid items-center gap-10 lg:grid-cols-2">
           <div>
+            <div className="mb-5 flex items-center gap-3 sm:mb-6">
+              <GoPlateLogoMark
+                size="xl"
+                decorative
+                className="origin-left drop-shadow-[0_3px_12px_rgb(0_0_0_/0.1)] sm:scale-[1.03]"
+              />
+              <div className="text-xs font-semibold uppercase tracking-wider text-gp-charcoal/55">GoPlate</div>
+            </div>
             <h1 className="font-display text-3xl font-semibold leading-tight tracking-tight text-gp-charcoal sm:text-5xl">
               The kitchen next door is now your favorite restaurant.
             </h1>

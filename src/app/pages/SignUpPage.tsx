@@ -2,6 +2,7 @@ import { Lock, Mail, UserRound } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '../../ui/Button'
+import { GoPlateLogoMark } from '../../ui/GoPlateLogo'
 
 export function SignUpPage({
   onSignUp,
@@ -33,9 +34,18 @@ export function SignUpPage({
   return (
     <div className="gp-container pb-28 pt-10 md:pb-10">
       <div className="mx-auto max-w-xl rounded-[2rem] bg-gp-surface/80 p-6 shadow-natural ring-1 ring-black/5">
-        <div className="font-display text-2xl font-semibold">Create your account</div>
-        <div className="mt-1 text-sm text-gp-charcoal/65">
-          Join GoPlate to follow cooks, reserve dishes, and list your own plates.
+        <div className="flex flex-col items-center text-center">
+          <div className="flex min-h-[11rem] items-center justify-center py-2 sm:min-h-[11.75rem]">
+            <GoPlateLogoMark
+              decorative
+              size="2xl"
+              className="drop-shadow-[0_2px_8px_rgb(0_0_0_/0.08)]"
+            />
+          </div>
+          <div className="mt-4 font-display text-2xl font-semibold">Create your account</div>
+          <div className="mt-1 max-w-md text-sm text-gp-charcoal/65">
+            Join GoPlate to follow cooks, reserve dishes, and list your own plates.
+          </div>
         </div>
 
         {onSocial ? (

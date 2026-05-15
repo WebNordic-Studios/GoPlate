@@ -15,6 +15,7 @@ import {
 import { useEffect, useRef } from 'react'
 import { Hero } from '../components/Hero'
 import { Button } from '../../ui/Button'
+import { GoPlateLogoMark } from '../../ui/GoPlateLogo'
 import { attachHorizontalWheelScroll } from '../../lib/horizontalWheelScroll'
 import { useMarketplaceContext } from '../../state/marketplaceContext'
 import { useRecentlyViewed } from '../../state/recentlyViewed'
@@ -204,15 +205,26 @@ export function LandingPage({
         <div className="mt-12 grid gap-4 lg:grid-cols-12">
           <div className="lg:col-span-5">
             <div className="rounded-[2rem] bg-white/70 p-6 shadow-natural ring-1 ring-black/5">
-              <div className="font-display text-xl font-semibold">About GoPlate</div>
-              <p className="mt-3 text-sm text-gp-charcoal/75">
-                GoPlate is a hyper-local marketplace for home-cooked meals and artisanal bakes. It’s built for
-                neighbors: short pickup windows, privacy-first locations, and small-batch drops you can trust.
-              </p>
-              <div className="mt-5 grid gap-3">
-                <Blurb title="Neighborhood-first">Discover cooks within a few miles — not across town.</Blurb>
-                <Blurb title="Privacy protected">Pickup areas are approximate until checkout.</Blurb>
-                <Blurb title="Small-batch quality">Limited portions means fresher food and better craft.</Blurb>
+              <div className="flex items-start gap-4">
+                <div className="flex shrink-0 items-start pt-0.5">
+                  <GoPlateLogoMark
+                    size="xl"
+                    decorative
+                    className="drop-shadow-[0_3px_12px_rgb(0_0_0_/0.09)] sm:scale-[1.04]"
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-display text-xl font-semibold">About GoPlate</div>
+                  <p className="mt-3 text-sm text-gp-charcoal/75">
+                    GoPlate is a hyper-local marketplace for home-cooked meals and artisanal bakes. It’s built for
+                    neighbors: short pickup windows, privacy-first locations, and small-batch drops you can trust.
+                  </p>
+                  <div className="mt-5 grid gap-3">
+                    <Blurb title="Neighborhood-first">Discover cooks within a few miles — not across town.</Blurb>
+                    <Blurb title="Privacy protected">Pickup areas are approximate until checkout.</Blurb>
+                    <Blurb title="Small-batch quality">Limited portions means fresher food and better craft.</Blurb>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

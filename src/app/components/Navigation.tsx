@@ -1,5 +1,6 @@
 import { Home, Search, ShoppingBag, User } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { GoPlateLogoMark } from '../../ui/GoPlateLogo'
 
 export type RouteId = 'home' | 'market' | 'orders' | 'profile' | 'cook' | 'checkout'
 
@@ -36,16 +37,16 @@ export function NavigationShell({ route, onNavigate, rightSlot }: Props) {
     <>
       <header className="sticky top-0 z-40 border-b border-black/5 bg-white/70 backdrop-blur-glass">
         <div className="gp-container">
-          <div className="flex h-16 items-center justify-between gap-3">
+          <div className="flex h-[4.75rem] items-center justify-between gap-3 sm:h-20">
             <button
               type="button"
               onClick={() => onNavigate('home')}
-              className="gp-focus flex items-center gap-2 rounded-2xl px-2 py-1"
+              className="gp-focus flex items-center gap-2.5 rounded-2xl px-2 py-1"
               aria-label="GoPlate"
             >
-              <div className="grid h-9 w-9 place-items-center rounded-2xl bg-gp-primary text-white shadow-natural">
-                GP
-              </div>
+              <span className="flex shrink-0 items-center justify-center [-webkit-tap-highlight-color:transparent]">
+                <GoPlateLogoMark size="md" decorative className="drop-shadow-[0_1px_3px_rgb(0_0_0_/0.08)]" />
+              </span>
               <div className="hidden sm:block">
                 <div className="font-display text-base font-semibold leading-none">GoPlate</div>
                 <div className="text-xs text-gp-charcoal/60">Neighborhood gourmet</div>

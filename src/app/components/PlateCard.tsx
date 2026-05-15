@@ -1,4 +1,4 @@
-import { BadgeCheck, Flame, Sparkles, Star } from 'lucide-react'
+import { BadgeCheck, Clock, Flame, MapPin, Sparkles, Star } from 'lucide-react'
 import { motion, useReducedMotion } from 'framer-motion'
 import type { Plate } from '../../types'
 import { formatDistanceBadge, formatMoney } from '../../lib/format'
@@ -37,6 +37,7 @@ export function PlateCard({
   const priceCls = compact ? 'font-display text-base font-semibold' : 'font-display text-lg font-semibold'
 
   const dietaryTags = (plate.dietary ?? []).slice(0, 2)
+  const areaLine = [plate.geo.areaLabel, plate.zip].filter(Boolean).join(' · ')
 
   return (
     <motion.article
@@ -86,22 +87,29 @@ export function PlateCard({
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className={`truncate ${titleCls}`}>{plate.name}</div>
-              <div className={`mt-1 flex items-center gap-2 text-sm text-gp-charcoal/70 ${compact ? 'flex-wrap' : ''}`}>
+              <div className={`mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gp-charcoal/70`}>
                 {settings.showCookAvatars ? (
                   <img
                     src={plate.cook.avatarUrl}
-                    alt={plate.cook.name}
-                    className="h-7 w-7 shrink-0 rounded-full object-cover ring-2 ring-white"
+                    alt=""
+                    className={`shrink-0 rounded-xl object-cover ring-2 ring-white ${compact ? 'h-8 w-8' : 'h-9 w-9'}`}
                     loading="lazy"
                   />
-                ) : null}
+                ) : (
+                  <span
+                    className={`grid shrink-0 place-items-center rounded-xl bg-gp-secondary/15 font-display text-xs font-bold text-gp-secondary ring-2 ring-white ${compact ? 'h-8 w-8' : 'h-9 w-9'}`}
+                    aria-hidden
+                  >
+                    {plate.cook.name.trim().slice(0, 1).toUpperCase()}
+                  </span>
+                )}
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation()
                     onOpenCook?.()
                   }}
-                  className={`gp-focus inline-flex items-center gap-1 truncate rounded-xl px-2 py-1 text-left font-semibold text-gp-charcoal/80 hover:bg-black/5 ${settings.showCookAvatars ? '-ml-1' : ''}`}
+                  className="gp-focus inline-flex min-w-0 max-w-full items-center gap-1 truncate rounded-xl px-2 py-1 text-left font-semibold text-gp-charcoal hover:bg-black/5"
                   aria-label={`View ${plate.cook.name} profile`}
                 >
                   <span className="truncate">{plate.cook.name}</span>
@@ -109,9 +117,17 @@ export function PlateCard({
                     <BadgeCheck size={14} className="shrink-0 text-gp-secondary" aria-label="Verified cook" />
                   ) : null}
                 </button>
-                <div className="flex shrink-0 items-center gap-1 text-gp-charcoal/70">
-                  <Star size={14} className="text-gp-primary" fill="currentColor" />
-                  <span className="font-semibold">{plate.rating.toFixed(1)}</span>
+                <span className="hidden text-gp-charcoal/35 sm:inline" aria-hidden>
+                  ·
+                </span>
+                <div className="flex shrink-0 items-center gap-1 font-medium text-gp-charcoal/75">
+                  <Star size={14} className="text-gp-primary" fill="currentColor" aria-hidden />
+                  <span>{plate.rating.toFixed(1)}</span>
+                  {plate.ratingCount > 0 ? (
+                    <span className="text-gp-charcoal/50">({plate.ratingCount})</span>
+                  ) : (
+                    <span className="text-xs font-semibold text-gp-charcoal/45">New</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -140,9 +156,21 @@ export function PlateCard({
             </div>
           ) : null}
 
+          {areaLine ? (
+            <div
+              className={`flex items-start gap-2 text-xs font-medium leading-snug text-gp-charcoal/65 ${compact ? 'mt-2' : 'mt-2.5'}`}
+            >
+              <MapPin size={14} className="mt-0.5 shrink-0 text-gp-secondary/90" aria-hidden />
+              <span className="min-w-0">{areaLine}</span>
+            </div>
+          ) : null}
+
           {settings.showPickupWindowsOnCards ? (
-            <div className={`text-sm font-semibold text-gp-secondary ${compact ? 'mt-2' : 'mt-3'}`}>
-              {plate.pickupWindow}
+            <div
+              className={`inline-flex max-w-full items-start gap-2 rounded-xl bg-gp-secondary/[0.07] px-3 py-2 text-xs font-semibold leading-snug text-gp-secondary ring-1 ring-gp-secondary/10 ${compact ? 'mt-2' : 'mt-2.5'}`}
+            >
+              <Clock size={14} className="mt-0.5 shrink-0 opacity-90" aria-hidden />
+              <span className="min-w-0">{plate.pickupWindow}</span>
             </div>
           ) : null}
 

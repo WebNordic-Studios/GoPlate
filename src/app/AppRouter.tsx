@@ -27,7 +27,6 @@ import { MePage } from './pages/MePage'
 import { CookProfilePage } from './pages/CookProfilePage'
 import { SearchPage } from './pages/SearchPage'
 import { SettingsPage } from './pages/SettingsPage'
-import { FeedPage } from './pages/FeedPage'
 import { CookDashboardPage } from './pages/CookDashboardPage'
 import { AccountPage } from './pages/AccountPage'
 import { WriteReviewModal } from './components/WriteReviewModal'
@@ -184,6 +183,8 @@ export default function AppRouter() {
                   onOpenPlate={(id) => setOpenPlateId(id)}
                   onReservePlate={(id) => navigate(`/checkout/${id}`)}
                   onOpenCook={(cookId) => navigate(`/cooks/${cookId}`)}
+                  followsByCookId={social.followsByCookId}
+                  likesByPlateId={social.likesByPlateId}
                 />
               }
             />
@@ -198,19 +199,7 @@ export default function AppRouter() {
               element={<SearchPage plates={visiblePlates} onOpenPlate={(id) => setOpenPlateId(id)} />}
             />
 
-            <Route
-              path="/feed"
-              element={
-                <FeedPage
-                  plates={visiblePlates}
-                  followsByCookId={social.followsByCookId}
-                  likesByPlateId={social.likesByPlateId}
-                  onOpenPlate={(id) => setOpenPlateId(id)}
-                  onReservePlate={(id) => navigate(`/checkout/${id}`)}
-                  onOpenCook={(cookId) => navigate(`/cooks/${cookId}`)}
-                />
-              }
-            />
+            <Route path="/feed" element={<Navigate to="/market#for-you" replace />} />
 
             <Route
               path="/cooks/:cookId"

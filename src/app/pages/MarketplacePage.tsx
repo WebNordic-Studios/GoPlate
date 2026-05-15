@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Compass } from 'lucide-react'
+import { useLocation } from 'react-router-dom'
+import { Clock, Compass, Heart, MapPin, UserPlus2 } from 'lucide-react'
 import type { Category, Cuisine, DietaryTag, Plate } from '../../types'
 import { CategoryRibbon } from '../components/CategoryRibbon'
 import { PlateCard } from '../components/PlateCard'
 import { FilterBar } from '../components/FilterBar'
 import { sortPlates, type SortMode } from '../../lib/sortPlates'
+import { formatMoney } from '../../lib/format'
+import { useSettings } from '../../state/settings'
 import { EmptyState } from '../../ui/EmptyState'
 import { Button } from '../../ui/Button'
 import { nearestZip, requestUserLocation } from '../../lib/geo'
@@ -20,6 +23,8 @@ export function MarketplacePage({
   onOpenPlate,
   onReservePlate,
   onOpenCook,
+  followsByCookId,
+  likesByPlateId,
 }: {
   plates: Plate[]
   zip: string
@@ -29,7 +34,12 @@ export function MarketplacePage({
   onOpenPlate: (plateId: string) => void
   onReservePlate: (plateId: string) => void
   onOpenCook?: (cookId: string) => void
+  followsByCookId: Record<string, true>
+  likesByPlateId: Record<string, true>
 }) {
+  const location = useLocation()
+  const forYouRef = useRef<HTMLElement | null>(null)
+  const allPlatesRef = useRef<HTMLDivElement | null>(null)
   const [sort, setSort] = useState<SortMode>('recommended')
   const [dietary, setDietary] = useState<Set<DietaryTag>>(() => new Set())
   const [cuisines, setCuisines] = useState<Set<Cuisine>>(() => new Set())
@@ -57,6 +67,39 @@ export function MarketplacePage({
   }, [visible, zip, category, cuisines, dietary])
 
   const sorted = useMemo(() => sortPlates(filtered, sort), [filtered, sort])
+
+  const followedFeedPlates = useMemo(
+    () =>
+      visible
+        .filter((p) => followsByCookId[p.cook.id])
+        .sort((a, b) => (b.createdAtIso ?? '').localeCompare(a.createdAtIso ?? '')),
+    [visible, followsByCookId],
+  )
+
+  const likedPlates = useMemo(
+    () => visible.filter((p) => likesByPlateId[p.id]),
+    [visible, likesByPlateId],
+  )
+
+  const recommendedFromLikes = useMemo(() => {
+    if (likedPlates.length === 0) return [] as Plate[]
+    const likedCategories = new Set(likedPlates.map((p) => p.category))
+    const likedCuisines = new Set(likedPlates.map((p) => p.cuisine).filter(Boolean))
+    return visible
+      .filter(
+        (p) =>
+          !likesByPlateId[p.id] &&
+          !followsByCookId[p.cook.id] &&
+          (likedCategories.has(p.category) || (p.cuisine && likedCuisines.has(p.cuisine))),
+      )
+      .slice(0, 9)
+  }, [visible, likedPlates, likesByPlateId, followsByCookId])
+
+  useEffect(() => {
+    if (location.hash === '#for-you' && forYouRef.current) {
+      forYouRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [location.hash, location.pathname])
 
   function toggle<T>(set: Set<T>, val: T): Set<T> {
     const next = new Set(set)
@@ -119,14 +162,15 @@ export function MarketplacePage({
     <div className="gp-container pb-28 pt-6 md:pb-10">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <div className="font-display text-2xl font-semibold">Marketplace</div>
+          <div className="font-display text-2xl font-semibold">Find food</div>
           <div className="mt-1 text-sm text-gp-charcoal/65">
             {zip.trim() ? (
               <>
-                Showing results near <span className="font-semibold">{zip.trim()}</span>
+                Near <span className="font-semibold">{zip.trim()}</span> · browse everyone below, plus your personalized
+                picks up front.
               </>
             ) : (
-              'Browse what neighbors are cooking today.'
+              'Browse neighbors’ dishes and your personalized feed in one place.'
             )}
           </div>
         </div>
@@ -157,6 +201,80 @@ export function MarketplacePage({
         />
       </div>
 
+      <section
+        id="for-you"
+        ref={forYouRef}
+        className="scroll-mt-28 mt-8 rounded-[2rem] bg-gradient-to-b from-gp-primary/[0.07] via-gp-surface/80 to-gp-surface/40 p-5 shadow-natural ring-1 ring-black/5 sm:p-6"
+        aria-labelledby="for-you-heading"
+      >
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 id="for-you-heading" className="font-display text-xl font-semibold tracking-tight text-gp-charcoal">
+              For you
+            </h2>
+            <p className="mt-1 text-sm text-gp-charcoal/65">
+              From cooks you follow and dishes similar to what you’ve liked — not filtered by ZIP so you never miss a
+              drop.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-6 space-y-8">
+          <div aria-labelledby="following-feed">
+            <h3 id="following-feed" className="flex items-center gap-2 font-display text-base font-semibold text-gp-charcoal">
+              <UserPlus2 size={17} className="text-gp-secondary" aria-hidden />
+              From cooks you follow
+            </h3>
+            {followedFeedPlates.length === 0 ? (
+              <div className="mt-3 rounded-2xl bg-white/70 p-4 ring-1 ring-black/5 sm:p-5">
+                <EmptyState
+                  icon={<UserPlus2 size={20} />}
+                  title="Follow cooks to see them here"
+                  description="Tap Follow on a cook profile or dish — new listings from them land in this row first."
+                  action={
+                    <Button type="button" variant="secondary" onClick={() => allPlatesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+                      Browse all plates
+                    </Button>
+                  }
+                />
+              </div>
+            ) : (
+              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {followedFeedPlates.map((p) => (
+                  <PlateCard
+                    key={p.id}
+                    plate={p}
+                    onOpen={() => onOpenPlate(p.id)}
+                    onReserve={() => onReservePlate(p.id)}
+                    onOpenCook={onOpenCook ? () => onOpenCook(p.cook.id) : undefined}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {recommendedFromLikes.length > 0 ? (
+            <div aria-labelledby="likes-recs">
+              <h3 id="likes-recs" className="flex items-center gap-2 font-display text-base font-semibold text-gp-charcoal">
+                <Heart size={17} className="text-gp-primary" aria-hidden />
+                Based on what you’ve liked
+              </h3>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {recommendedFromLikes.map((p) => (
+                  <PlateCard
+                    key={p.id}
+                    plate={p}
+                    onOpen={() => onOpenPlate(p.id)}
+                    onReserve={() => onReservePlate(p.id)}
+                    onOpenCook={onOpenCook ? () => onOpenCook(p.cook.id) : undefined}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </section>
+
       {!hasActiveFilters && (collections.under10.length || collections.newCooks.length || collections.tonight.length) ? (
         <div className="mt-8 space-y-8">
           <CollectionRail title="Under $10" subtitle="Wallet-friendly drops nearby" plates={collections.under10} onOpenPlate={onOpenPlate} />
@@ -175,7 +293,7 @@ export function MarketplacePage({
         </div>
       ) : null}
 
-      <div className="mt-8">
+      <div className="mt-8" id="all-plates" ref={allPlatesRef}>
         <div className="mb-3 flex items-end justify-between gap-3">
           <div className="font-display text-xl font-semibold">All plates</div>
         </div>
@@ -229,6 +347,7 @@ function CollectionRail({
   plates: Plate[]
   onOpenPlate: (plateId: string) => void
 }) {
+  const { settings } = useSettings()
   const railRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const el = railRef.current
@@ -266,10 +385,35 @@ function CollectionRail({
                 <div className="text-sm font-semibold text-white">{p.name}</div>
               </div>
             </div>
-            <div className="flex items-center justify-between gap-2 px-3 py-2">
-              <div className="text-xs font-semibold text-gp-charcoal/70">{p.cook.name}</div>
-              <div className="text-xs font-bold text-gp-charcoal">
-                {(p.priceCents / 100).toLocaleString(undefined, { style: 'currency', currency: 'USD' })}
+            <div className="space-y-2 px-3 py-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <img
+                    src={p.cook.avatarUrl}
+                    alt=""
+                    className="h-9 w-9 shrink-0 rounded-xl object-cover ring-1 ring-black/10"
+                    loading="lazy"
+                  />
+                  <div className="min-w-0">
+                    <div className="truncate text-xs font-semibold text-gp-charcoal">{p.cook.name}</div>
+                    <div className="mt-0.5 flex items-center gap-1 text-[11px] font-medium text-gp-charcoal/55">
+                      <MapPin size={12} className="shrink-0 text-gp-secondary/80" aria-hidden />
+                      <span className="truncate">
+                        {p.geo.areaLabel} · {p.zip}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-gp-charcoal/45">From</div>
+                  <div className="text-sm font-bold text-gp-charcoal">
+                    {formatMoney(p.priceCents, settings.currency, settings.locale)}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 rounded-xl bg-gp-secondary/[0.07] px-2.5 py-1.5 text-[11px] font-semibold text-gp-secondary ring-1 ring-gp-secondary/10">
+                <Clock size={12} className="shrink-0 opacity-90" aria-hidden />
+                <span className="min-w-0 leading-tight">{p.pickupWindow}</span>
               </div>
             </div>
           </button>

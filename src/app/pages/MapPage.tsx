@@ -1,6 +1,6 @@
 import 'leaflet/dist/leaflet.css'
 import * as L from 'leaflet'
-import { Info, Layers, MapPinned, Search, Star } from 'lucide-react'
+import { Info, Layers, Search, Star } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Category, Plate } from '../../types'
 import { formatDistanceShort, formatMoney } from '../../lib/format'
@@ -9,6 +9,14 @@ import { Button } from '../../ui/Button'
 import { CategoryRibbon } from '../components/CategoryRibbon'
 
 const DEFAULT_CENTER: L.LatLngExpression = { lat: 40.73, lng: -73.99 }
+
+/** Serialized Leaflet bounds for React state (prototype locales stay away from the antimeridian). */
+type ViewportBounds = { south: number; west: number; north: number; east: number }
+
+function plateInViewport(plate: Plate, bounds: ViewportBounds): boolean {
+  const { lat, lng } = plate.geo
+  return lat >= bounds.south && lat <= bounds.north && lng >= bounds.west && lng <= bounds.east
+}
 
 export function MapPage({
   plates,
@@ -20,6 +28,7 @@ export function MapPage({
   const mapEl = useRef<HTMLDivElement | null>(null)
   const [category, setCategory] = useState<Category>('All')
   const [query, setQuery] = useState('')
+  const [viewportBounds, setViewportBounds] = useState<ViewportBounds | null>(null)
 
   const withGeo = useMemo(
     () =>
@@ -60,6 +69,16 @@ export function MapPage({
     }
   }, [mapPlates])
 
+  const sidebarPlates = useMemo(() => {
+    if (!viewportBounds) return []
+    return mapPlates.filter((p) => plateInViewport(p, viewportBounds))
+  }, [mapPlates, viewportBounds])
+
+  /** Avoid one frame listing pins against bounds from before filters changed (map effect runs after paint). */
+  useEffect(() => {
+    setViewportBounds(null)
+  }, [category, query])
+
   useEffect(() => {
     if (!mapEl.current) return
     const container = mapEl.current as HTMLElement & { _leaflet_id?: number | null }
@@ -71,8 +90,13 @@ export function MapPage({
       scrollWheelZoom: true,
     })
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    // Voyager + gp-map-apple-like CSS: closest Leaflet-friendly analogue to Apple Maps’ warm, quiet standard style.
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      subdomains: 'abcd',
+      maxZoom: 20,
+      detectRetina: true,
     }).addTo(map)
 
     const layer: L.LayerGroup = L.layerGroup().addTo(map)
@@ -149,8 +173,18 @@ export function MapPage({
       }
     }
 
-    renderClusters()
-    map.on('zoomend moveend', renderClusters)
+    function onMapViewChanged() {
+      renderClusters()
+      const b = map.getBounds()
+      setViewportBounds({
+        south: b.getSouth(),
+        west: b.getWest(),
+        north: b.getNorth(),
+        east: b.getEast(),
+      })
+    }
+
+    map.on('zoomend moveend', onMapViewChanged)
 
     const latlngs: L.LatLngTuple[] = mapPlates
       .filter((p) => p.geo && typeof p.geo.lat === 'number' && typeof p.geo.lng === 'number')
@@ -165,8 +199,10 @@ export function MapPage({
       map.fitBounds(b, { padding: [48, 48], maxZoom: 14 })
     }
 
+    onMapViewChanged()
+
     return () => {
-      map.off('zoomend moveend', renderClusters)
+      map.off('zoomend moveend', onMapViewChanged)
       layer.clearLayers()
       map.remove()
     }
@@ -230,7 +266,9 @@ export function MapPage({
         <div className="lg:col-span-8">
           <div className="relative isolate z-0 overflow-hidden rounded-[2rem] bg-white shadow-natural ring-1 ring-black/5">
             <div className="h-[52vh] min-h-[360px] lg:h-[min(68vh,640px)]">
-              <div ref={mapEl} className="h-full w-full" />
+              <div className="gp-map-apple-like h-full w-full">
+                <div ref={mapEl} className="h-full w-full" />
+              </div>
             </div>
           </div>
 
@@ -258,6 +296,7 @@ export function MapPage({
                 <li>Tap a pin for pickup window, price, and a quick link into the dish.</li>
                 <li>Tap a numbered cluster to zoom into that area.</li>
                 <li>Combine filters to plan a route across multiple stops.</li>
+                <li>The sidebar lists meals only inside your current map window.</li>
               </ul>
             </div>
           </div>
@@ -265,28 +304,18 @@ export function MapPage({
 
         <aside className="lg:col-span-4">
           <div className="flex items-center justify-between gap-2">
-            <div className="font-display text-lg font-semibold">On the map</div>
+            <div className="font-display text-lg font-semibold">In this view</div>
             <span className="rounded-full bg-gp-primary/10 px-3 py-1 text-xs font-semibold text-gp-primary">
-              {stats.pins} shown
+              {sidebarPlates.length} here
             </span>
           </div>
           <p className="mt-1 text-xs text-gp-charcoal/60">
-            Same results as the pins — scroll the list or click through to details.
+            Only dishes inside the map frame — pan or zoom to explore another pocket.
           </p>
           <div className="mt-4 max-h-[min(68vh,640px)] space-y-3 overflow-y-auto pr-1">
-            {mapPlates.length === 0 ? (
-              <div className="rounded-2xl bg-white/70 p-6 text-center shadow-natural ring-1 ring-black/5">
-                <MapPinned className="mx-auto h-10 w-10 text-gp-charcoal/25" aria-hidden />
-                <p className="mt-3 text-sm font-semibold text-gp-charcoal">Nothing matches yet</p>
-                <p className="mt-1 text-xs text-gp-charcoal/60">
-                  Try another category or clear your search to see more pins.
-                </p>
-              </div>
-            ) : (
-              mapPlates.map((p) => (
-                <MapPlateRow key={p.id} plate={p} onOpen={() => onOpenPlate(p.id)} />
-              ))
-            )}
+            {sidebarPlates.map((p) => (
+              <MapPlateRow key={p.id} plate={p} onOpen={() => onOpenPlate(p.id)} />
+            ))}
           </div>
         </aside>
       </div>
@@ -305,8 +334,8 @@ export function MapPage({
             body="Markers reflect general areas; exact addresses stay gated until checkout, matching the rest of the app."
           />
           <MapBlurb
-            title="Built on OpenStreetMap"
-            body="Tiles and attribution follow the OSM community license — no API keys required for this prototype."
+            title="Apple Maps–style polish"
+            body="Apple doesn’t ship public web tiles, so we pair a clean OSM-backed basemap with warm, softened rendering—cream land, gentle greens, calm blues—for that familiar Maps calm."
           />
         </div>
       </div>
