@@ -109,24 +109,9 @@ export function Hero({ initialZip = '', onSearchZip }: Props) {
                 src="https://images.unsplash.com/photo-1543353071-873f17a7a088?auto=format&fit=crop&w=1800&q=80"
               />
             </motion.div>
-            {settings.showHeroStats ? (
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <Stat label="Today’s pickups" value="38" />
-                <Stat label="Avg. rating" value="★ 4.8" />
-              </div>
-            ) : null}
           </div>
         </div>
       </div>
     </section>
-  )
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="gp-glass rounded-2xl px-4 py-3">
-      <div className="text-xs font-semibold text-gp-charcoal/60">{label}</div>
-      <div className="mt-1 font-display text-lg font-semibold">{value}</div>
-    </div>
   )
 }

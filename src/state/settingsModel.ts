@@ -18,7 +18,6 @@ export type Settings = {
   confirmBeforeReserve: boolean
   showCookAvatars: boolean
   defaultCategory: Category
-  showHeroStats: boolean
   showPickupWindowsOnCards: boolean
   strongerFocusRings: boolean
   themeMode: ThemeMode
@@ -40,7 +39,6 @@ export const DEFAULT_SETTINGS: Settings = {
   confirmBeforeReserve: false,
   showCookAvatars: true,
   defaultCategory: 'All',
-  showHeroStats: true,
   showPickupWindowsOnCards: true,
   strongerFocusRings: false,
   themeMode: 'system',
@@ -94,7 +92,6 @@ export function migrateSettings(raw: unknown): Settings {
     confirmBeforeReserve: typeof o.confirmBeforeReserve === 'boolean' ? o.confirmBeforeReserve : d.confirmBeforeReserve,
     showCookAvatars: typeof o.showCookAvatars === 'boolean' ? o.showCookAvatars : d.showCookAvatars,
     defaultCategory: isCategory(o.defaultCategory) ? o.defaultCategory : d.defaultCategory,
-    showHeroStats: typeof o.showHeroStats === 'boolean' ? o.showHeroStats : d.showHeroStats,
     showPickupWindowsOnCards:
       typeof o.showPickupWindowsOnCards === 'boolean' ? o.showPickupWindowsOnCards : d.showPickupWindowsOnCards,
     strongerFocusRings: typeof o.strongerFocusRings === 'boolean' ? o.strongerFocusRings : d.strongerFocusRings,

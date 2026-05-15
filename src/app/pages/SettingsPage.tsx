@@ -232,14 +232,6 @@ export function SettingsPage({
             />
 
             <SettingCard
-              icon={<Sparkles size={18} className="text-gp-primary" />}
-              title="Show hero stats"
-              description="Display the sample pickup and rating tiles beside the landing hero image."
-              checked={settings.showHeroStats}
-              onToggle={(v) => onChange('showHeroStats', v)}
-            />
-
-            <SettingCard
               icon={<Tag size={18} className="text-gp-charcoal" />}
               title="Cook avatars on cards"
               description="Show the cook portrait next to their name on plate cards and in the dish modal header."
