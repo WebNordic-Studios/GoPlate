@@ -58,7 +58,7 @@ export function NavigationShell({ route, onNavigate, rightSlot }: Props) {
                 Find Food
               </TopLink>
               <TopLink active={route === 'cook'} onClick={() => onNavigate('cook')}>
-                Start Cooking
+                Create
               </TopLink>
             </nav>
 

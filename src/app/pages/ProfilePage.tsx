@@ -85,10 +85,10 @@ export function ProfilePage({ user, onOpenPlate }: { user: User; onOpenPlate: (p
             <CookingPot className="mx-auto h-10 w-10 text-gp-charcoal/25" aria-hidden />
             <p className="mt-3 font-display text-lg font-semibold text-gp-charcoal">No posts yet</p>
             <p className="mx-auto mt-2 max-w-sm text-sm text-gp-charcoal/65">
-              When you publish from Start Cooking, your dishes show up here and stay tied to your profile.
+              When you publish from Create, your dishes show up here and stay tied to your profile.
             </p>
             <Button variant="primary" className="mt-5" onClick={() => navigate('/cook')}>
-              Start cooking
+              Create
             </Button>
           </div>
         ) : (

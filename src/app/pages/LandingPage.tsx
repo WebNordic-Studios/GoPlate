@@ -154,7 +154,7 @@ export function LandingPage({
 
         <div className="mt-8 grid gap-4 rounded-[2rem] bg-white/70 p-6 shadow-natural ring-1 ring-black/5 md:grid-cols-3 md:items-center">
           <div className="md:col-span-2">
-            <div className="font-display text-xl font-semibold">Start cooking. Start earning.</div>
+            <div className="font-display text-xl font-semibold">Create. Start earning.</div>
             <p className="mt-2 text-sm text-gp-charcoal/70">
               List a plate in minutes with a clean, multi-step flow. Your dish appears in the marketplace and stays
               visible after refresh in this prototype build — perfect for demos and investor walkthroughs.
@@ -162,7 +162,7 @@ export function LandingPage({
           </div>
           <div className="flex justify-start md:justify-end">
             <Button variant="secondary" onClick={onStartCooking} leftIcon={<ArrowRight size={18} />}>
-              Start Cooking
+              Create
             </Button>
           </div>
         </div>

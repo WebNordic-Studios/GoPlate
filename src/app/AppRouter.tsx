@@ -1,6 +1,6 @@
-import { UserRound } from 'lucide-react'
+import { MessageCircle, UserRound } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Navigate, NavLink, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import type { Category, Plate } from '../types'
 import { Modal } from '../ui/Modal'
 import { useMarketplace } from '../state/useMarketplace'
@@ -15,6 +15,8 @@ import { useRecentlyViewed } from '../state/recentlyViewed'
 import { NavigationShellRouter } from './components/NavigationRouter'
 import { LandingPage } from './pages/LandingPage'
 import { MarketplacePage } from './pages/MarketplacePage'
+import { MessagesDrawer } from './components/MessagesDrawer'
+import { NotificationsDropdown } from './components/NotificationsDropdown'
 import { PlateDetail } from './components/PlateDetail'
 import { CheckoutPage } from './pages/CheckoutPage'
 import { StartCookingPage } from './pages/StartCookingPage'
@@ -76,18 +78,20 @@ export default function AppRouter() {
     }
   }, [openPlateId, marketplace, recentlyViewed])
 
-  const rightSlot = useMemo(() => {
-    return (
-      <button
-        type="button"
-        onClick={() => navigate(user ? '/me' : '/login')}
-        className="gp-focus grid h-10 w-10 place-items-center rounded-2xl text-gp-charcoal/70 transition hover:bg-black/5"
-        aria-label="User profile"
-      >
-        <UserRound size={18} />
-      </button>
-    )
-  }, [navigate, user])
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [messagesOpen, setMessagesOpen] = useState(false)
+
+  const headerChromeIconBtn = (active: boolean) =>
+    [
+      'gp-focus grid h-10 w-10 shrink-0 place-items-center rounded-2xl text-gp-charcoal/70 transition hover:bg-black/5',
+      active ? 'bg-black/10 text-gp-charcoal' : '',
+    ].join(' ')
+
+  const headerIconNavClass = ({ isActive }: { isActive: boolean }) =>
+    [
+      'gp-focus grid h-10 w-10 shrink-0 place-items-center rounded-2xl text-gp-charcoal/70 transition hover:bg-black/5',
+      isActive ? 'bg-black/10 text-gp-charcoal' : '',
+    ].join(' ')
 
   const rootShellClass = [
     'min-h-svh bg-gp-bg',
@@ -153,7 +157,54 @@ export default function AppRouter() {
   return (
     <MarketplaceProvider value={marketplace}>
       <div className={rootShellClass}>
-        <NavigationShellRouter rightSlot={rightSlot} />
+        <NavigationShellRouter
+          rightSlot={
+            <>
+              <NotificationsDropdown
+                open={notificationsOpen}
+                onOpenChange={(v) => {
+                  if (v) setMessagesOpen(false)
+                  setNotificationsOpen(v)
+                }}
+                user={user}
+                orders={marketplace.orders}
+              />
+              <button
+                type="button"
+                data-gp-messages-drawer-trigger
+                onClick={() => {
+                  setNotificationsOpen(false)
+                  setMessagesOpen((o) => !o)
+                }}
+                className={headerChromeIconBtn(messagesOpen)}
+                aria-expanded={messagesOpen}
+                aria-controls="messages-drawer-panel"
+                aria-label="Messages"
+                title="Messages"
+              >
+                <MessageCircle size={18} aria-hidden />
+              </button>
+              <MessagesDrawer
+                open={messagesOpen}
+                onOpenChange={setMessagesOpen}
+                user={user}
+                orders={marketplace.orders}
+                messagesByOrderId={messages.byOrderId}
+                platesById={marketplace.byId}
+                onSendMessage={(orderId, body) => messages.sendMessage(orderId, 'buyer', body)}
+                forcedReduceMotion={settings.reduceMotion}
+              />
+              <NavLink
+                to={user ? '/me' : '/login'}
+                aria-label={user ? 'User profile' : 'Sign in'}
+                title={user ? 'Profile' : 'Sign in'}
+                className={headerIconNavClass}
+              >
+                <UserRound size={18} aria-hidden />
+              </NavLink>
+            </>
+          }
+        />
 
         <main>
           <Routes>

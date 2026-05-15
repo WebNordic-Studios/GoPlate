@@ -79,7 +79,7 @@ export function CookDashboardPage({
             icon={<ChefHat size={20} />}
             title="No listings yet"
             description="Publish your first plate to unlock the dashboard."
-            action={<Button variant="primary" onClick={() => navigate('/cook')}>Start cooking</Button>}
+            action={<Button variant="primary" onClick={() => navigate('/cook')}>Create</Button>}
           />
         </div>
       </div>

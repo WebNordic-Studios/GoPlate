@@ -42,7 +42,6 @@ export function StartCookingPage({
   onCreatePlate: (plate: NewPlate, opts?: { asDraft?: boolean; scheduledIso?: string }) => void
   onSubmitVerification?: () => void
 }) {
-  const [cookMode, setCookMode] = useState(true)
   const [step, setStep] = useState(0)
 
   const [photos, setPhotos] = useState<string[]>([])
@@ -72,14 +71,13 @@ export function StartCookingPage({
   const myPastPlates = useMemo(() => existingPlates.filter((p) => p.cook.id === user.id), [existingPlates, user.id])
 
   const canNext = useMemo(() => {
-    if (!cookMode) return false
     if (step === 0) return Boolean(photos.length > 0 && name.trim())
     if (step === 1) return Boolean(price.trim() && zip.trim())
     if (step === 2) return Boolean(readyFrom.trim() && readyTo.trim() && portions.trim())
     if (step === 3) return Boolean(ingredients.trim() && cooksNote.trim())
     if (step === 4) return noAllergens || allergens.size > 0
     return false
-  }, [cookMode, step, photos.length, name, price, zip, readyFrom, readyTo, portions, ingredients, cooksNote, noAllergens, allergens.size])
+  }, [step, photos.length, name, price, zip, readyFrom, readyTo, portions, ingredients, cooksNote, noAllergens, allergens.size])
 
   async function addPhotoFile(file: File) {
     if (photos.length >= 4) return
@@ -181,9 +179,9 @@ export function StartCookingPage({
     <div className="gp-container pb-28 pt-6 md:pb-10">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <div className="font-display text-2xl font-semibold">Start Cooking</div>
+          <div className="font-display text-2xl font-semibold">Create</div>
           <div className="mt-1 text-sm text-gp-charcoal/65">
-            Toggle into Cook Mode, list a plate, save a draft, or schedule a publish. Listings appear in the marketplace once published.
+            List a plate, save a draft, or schedule a publish. Listings appear in the marketplace once published.
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -192,23 +190,6 @@ export function StartCookingPage({
               Clone past plate
             </Button>
           ) : null}
-          <div className="flex items-center gap-2 rounded-2xl bg-gp-surface/70 px-3 py-2 shadow-natural ring-1 ring-black/5">
-            <div className="text-xs font-semibold text-gp-charcoal/60">Cook Mode</div>
-            <button
-              type="button"
-              onClick={() => setCookMode((v) => !v)}
-              className={`gp-focus relative h-7 w-12 rounded-full p-1 transition ${
-                cookMode ? 'bg-gp-secondary' : 'bg-black/10'
-              }`}
-              aria-label="Toggle cook mode"
-            >
-              <div
-                className={`h-5 w-5 rounded-full bg-white shadow-natural transition ${
-                  cookMode ? 'translate-x-5' : 'translate-x-0'
-                }`}
-              />
-            </button>
-          </div>
         </div>
       </div>
 
@@ -224,7 +205,7 @@ export function StartCookingPage({
           <div className="rounded-[2rem] bg-gp-surface/70 p-5 shadow-natural ring-1 ring-black/5">
             <Stepper step={step} />
 
-            <fieldset disabled={!cookMode} className="mt-5">
+            <fieldset className="mt-5">
               {step === 0 ? (
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="sm:col-span-2">
@@ -625,10 +606,6 @@ export function StartCookingPage({
             </div>
           </div>
 
-          <div className="mt-4 rounded-2xl bg-gp-surface/70 p-5 text-sm text-gp-charcoal/70 shadow-natural ring-1 ring-black/5">
-            Cook Mode is <span className="font-semibold">{cookMode ? 'on' : 'off'}</span>. When it’s off, the
-            form is intentionally locked to mimic role-based access.
-          </div>
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-import { Cog, Home, MapPin, Search, ShoppingBag, Store, User, UtensilsCrossed } from 'lucide-react'
+import { Cog, Home, MapPin, Plus, Search, ShoppingBag, Store, User } from 'lucide-react'
 import { GoPlateLogoMark } from '../../ui/GoPlateLogo'
 import { NavLink, useNavigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
@@ -95,7 +95,7 @@ export function NavigationShellRouter({ rightSlot }: Props) {
                 <TopNavLink to="/market">Find Food</TopNavLink>
                 <TopNavLink to="/orders">Orders</TopNavLink>
                 <TopNavLink to="/map">Map</TopNavLink>
-                <TopNavLink to="/cook">Start Cooking</TopNavLink>
+                <TopNavLink to="/cook">Create</TopNavLink>
                 <TopNavLink
                   to="/settings"
                   aria-label="Settings"
@@ -108,22 +108,30 @@ export function NavigationShellRouter({ rightSlot }: Props) {
               </nav>
             </div>
 
-            <div className="flex items-center gap-2">{rightSlot}</div>
+            <div className="flex items-center gap-0.5 sm:gap-2">
+              <NavLink
+                to="/orders"
+                title="Orders"
+                className={({ isActive }) =>
+                  `gp-focus md:hidden grid h-10 w-10 shrink-0 place-items-center rounded-2xl text-gp-charcoal/70 transition hover:bg-black/5 ${
+                    isActive ? 'bg-black/10 text-gp-charcoal' : ''
+                  }`
+                }
+                aria-label="Orders"
+              >
+                <ShoppingBag size={18} aria-hidden />
+              </NavLink>
+              {rightSlot}
+            </div>
           </div>
 
-          {/* Narrow screens: match desktop destinations (browse tab bar handles Home/Food/Search/Orders/Me) */}
+          {/* Narrow screens: extras not in the tab bar */}
           <div className="md:hidden">
             <div className="-mx-1 flex gap-2 overflow-x-auto pb-3 pt-0.5 no-scrollbar">
-              <TopNavLink to="/map" size="sm">
-                <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-                  <MapPin size={14} className="shrink-0 text-gp-charcoal/55" aria-hidden />
-                  Map
-                </span>
-              </TopNavLink>
               <TopNavLink to="/cook" size="sm">
                 <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-                  <UtensilsCrossed size={14} className="shrink-0 text-gp-charcoal/55" aria-hidden />
-                  Cook
+                  <Plus size={14} className="shrink-0 text-gp-charcoal/55" aria-hidden />
+                  Create
                 </span>
               </TopNavLink>
               <TopNavLink to="/settings" aria-label="Settings" title="Settings" size="sm">
@@ -143,7 +151,7 @@ export function NavigationShellRouter({ rightSlot }: Props) {
             <BottomTab to="/" label="Home" icon={<Home size={19} />} />
             <BottomTab to="/market" label="Food" title="Find food — marketplace" icon={<Store size={19} />} />
             <BottomTab to="/search" label="Search" icon={<Search size={19} />} />
-            <BottomTab to="/orders" label="Orders" icon={<ShoppingBag size={19} />} />
+            <BottomTab to="/map" label="Map" icon={<MapPin size={19} />} />
             <BottomTab to="/me" label="Profile" icon={<User size={19} />} />
           </div>
         </div>
