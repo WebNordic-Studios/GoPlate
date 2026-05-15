@@ -17,6 +17,7 @@ import { LandingPage } from './pages/LandingPage'
 import { MarketplacePage } from './pages/MarketplacePage'
 import { MessagesDrawer } from './components/MessagesDrawer'
 import { NotificationsDropdown } from './components/NotificationsDropdown'
+import { HeaderUnreadBadge } from './components/HeaderUnreadBadge'
 import { PlateDetail } from './components/PlateDetail'
 import { CheckoutPage } from './pages/CheckoutPage'
 import { StartCookingPage } from './pages/StartCookingPage'
@@ -37,6 +38,7 @@ import { ShareModal } from './components/ShareModal'
 import { useSettings } from '../state/settings'
 import { DEFAULT_SETTINGS } from '../state/settingsModel'
 import { useToast } from '../ui/Toast'
+import { countMessageThreadsUnread, countPickupReadyBellBadge } from './lib/headerUnreadBadges'
 
 export default function AppRouter() {
   const marketplace = useMarketplace()
@@ -108,6 +110,16 @@ export default function AppRouter() {
     [marketplace.plates, blocked],
   )
 
+  const messagesUnreadApprox = useMemo(
+    () => (user ? countMessageThreadsUnread(marketplace.orders, messages.byOrderId) : 0),
+    [user, marketplace.orders, messages.byOrderId],
+  )
+
+  const notificationsUnreadApprox = useMemo(
+    () => (user ? countPickupReadyBellBadge(marketplace.orders) : 0),
+    [user, marketplace.orders],
+  )
+
   const reviewOrder = reviewForOrderId
     ? marketplace.orders.find((o) => o.id === reviewForOrderId) ?? null
     : null
@@ -168,6 +180,7 @@ export default function AppRouter() {
                 }}
                 user={user}
                 orders={marketplace.orders}
+                badgeCount={notificationsUnreadApprox}
               />
               <button
                 type="button"
@@ -176,13 +189,14 @@ export default function AppRouter() {
                   setNotificationsOpen(false)
                   setMessagesOpen((o) => !o)
                 }}
-                className={headerChromeIconBtn(messagesOpen)}
+                className={`relative ${headerChromeIconBtn(messagesOpen)}`}
                 aria-expanded={messagesOpen}
                 aria-controls="messages-drawer-panel"
-                aria-label="Messages"
-                title="Messages"
+                aria-label={messagesUnreadApprox ? `Messages (${messagesUnreadApprox} unread)` : 'Messages'}
+                title={messagesUnreadApprox ? `Messages · ${messagesUnreadApprox} unread` : 'Messages'}
               >
                 <MessageCircle size={18} aria-hidden />
+                <HeaderUnreadBadge count={messagesUnreadApprox} />
               </button>
               <MessagesDrawer
                 open={messagesOpen}

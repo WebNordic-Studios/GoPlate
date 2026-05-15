@@ -3,15 +3,18 @@ import { useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import type { Order, User } from '../../types'
 import { buildTimelineNotifications } from '../lib/orderNotifications'
+import { HeaderUnreadBadge } from './HeaderUnreadBadge'
 
 type Props = {
   open: boolean
   onOpenChange: (open: boolean) => void
   user: User | null
   orders: Order[]
+  /** Approximate unread: orders marked Ready for pickup (prototype). */
+  badgeCount?: number
 }
 
-export function NotificationsDropdown({ open, onOpenChange, user, orders }: Props) {
+export function NotificationsDropdown({ open, onOpenChange, user, orders, badgeCount = 0 }: Props) {
   const navigate = useNavigate()
   const location = useLocation()
   const rootRef = useRef<HTMLDivElement>(null)
@@ -44,12 +47,13 @@ export function NotificationsDropdown({ open, onOpenChange, user, orders }: Prop
         aria-expanded={open}
         aria-haspopup="dialog"
         title="Notifications"
-        className={`gp-focus grid h-10 w-10 shrink-0 place-items-center rounded-2xl text-gp-charcoal/70 transition hover:bg-black/5 dark:hover:bg-white/10 ${
+        className={`gp-focus relative grid h-10 w-10 shrink-0 place-items-center rounded-2xl text-gp-charcoal/70 transition hover:bg-black/5 dark:hover:bg-white/10 ${
           open ? 'bg-black/10 text-gp-charcoal dark:bg-white/15 dark:text-gp-charcoal' : ''
         }`}
-        aria-label="Notifications"
+        aria-label={badgeCount > 0 ? `Notifications (${badgeCount} unread)` : 'Notifications'}
       >
         <Bell size={18} aria-hidden />
+        <HeaderUnreadBadge count={badgeCount} />
       </button>
 
       {open ? (
