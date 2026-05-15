@@ -1,4 +1,4 @@
-import { Cog, Home, Search, ShoppingBag, User } from 'lucide-react'
+import { Cog, Home, MapPin, Search, ShoppingBag, Store, User, UtensilsCrossed } from 'lucide-react'
 import { GoPlateLogoMark } from '../../ui/GoPlateLogo'
 import { NavLink, useNavigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
@@ -12,22 +12,25 @@ function TopNavLink({
   to,
   children,
   className = '',
+  size = 'md',
   'aria-label': ariaLabel,
   title,
 }: {
   to: string
   children: ReactNode
   className?: string
+  size?: 'md' | 'sm'
   'aria-label'?: string
   title?: string
 }) {
+  const sizing = size === 'sm' ? 'px-3 py-1.5 text-xs font-semibold' : 'px-3 py-2 text-sm font-semibold'
   return (
     <NavLink
       to={to}
       aria-label={ariaLabel}
       title={title}
       className={({ isActive }) =>
-        `gp-focus rounded-2xl px-3 py-2 text-sm font-semibold transition ${className} ${
+        `gp-focus shrink-0 rounded-2xl transition ${sizing} ${className} ${
           isActive ? 'bg-black/5 text-gp-charcoal' : 'text-gp-charcoal/70 hover:bg-black/5'
         }`
       }
@@ -88,29 +91,60 @@ export function NavigationShellRouter({ rightSlot }: Props) {
                 </div>
               </form>
 
-              <nav className="hidden items-center gap-2 lg:flex">
-              <TopNavLink to="/market">Find Food</TopNavLink>
-              <TopNavLink to="/map">Map</TopNavLink>
-              <TopNavLink to="/cook">Start Cooking</TopNavLink>
-              <TopNavLink to="/settings" aria-label="Settings" title="Settings" className="px-2.5">
-                <Cog size={20} className="text-gp-charcoal/75" aria-hidden />
-                <span className="sr-only">Settings</span>
-              </TopNavLink>
+              <nav className="flex flex-wrap items-center gap-2">
+                <TopNavLink to="/market">Find Food</TopNavLink>
+                <TopNavLink to="/orders">Orders</TopNavLink>
+                <TopNavLink to="/map">Map</TopNavLink>
+                <TopNavLink to="/cook">Start Cooking</TopNavLink>
+                <TopNavLink
+                  to="/settings"
+                  aria-label="Settings"
+                  title="Settings"
+                  className="px-2.5"
+                >
+                  <Cog size={20} className="text-gp-charcoal/75" aria-hidden />
+                  <span className="sr-only">Settings</span>
+                </TopNavLink>
               </nav>
             </div>
 
             <div className="flex items-center gap-2">{rightSlot}</div>
           </div>
+
+          {/* Narrow screens: match desktop destinations (browse tab bar handles Home/Food/Search/Orders/Me) */}
+          <div className="md:hidden">
+            <div className="-mx-1 flex gap-2 overflow-x-auto pb-3 pt-0.5 no-scrollbar">
+              <TopNavLink to="/map" size="sm">
+                <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                  <MapPin size={14} className="shrink-0 text-gp-charcoal/55" aria-hidden />
+                  Map
+                </span>
+              </TopNavLink>
+              <TopNavLink to="/cook" size="sm">
+                <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                  <UtensilsCrossed size={14} className="shrink-0 text-gp-charcoal/55" aria-hidden />
+                  Cook
+                </span>
+              </TopNavLink>
+              <TopNavLink to="/settings" aria-label="Settings" title="Settings" size="sm">
+                <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                  <Cog size={14} className="shrink-0 text-gp-charcoal/55" aria-hidden />
+                  Settings
+                </span>
+              </TopNavLink>
+            </div>
+          </div>
         </div>
       </header>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-black/5 bg-white/80 backdrop-blur-glass md:hidden">
-        <div className="gp-container">
-          <div className="grid grid-cols-4 py-2">
-            <BottomTab to="/" label="Home" icon={<Home size={20} />} />
-            <BottomTab to="/search" label="Search" icon={<Search size={20} />} />
-            <BottomTab to="/orders" label="Orders" icon={<ShoppingBag size={20} />} />
-            <BottomTab to="/me" label="Profile" icon={<User size={20} />} />
+      <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-black/5 bg-white/85 backdrop-blur-glass pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden">
+        <div className="gp-container px-2 sm:px-4">
+          <div className="grid grid-cols-5 gap-0.5 py-1.5 sm:gap-1 sm:py-2">
+            <BottomTab to="/" label="Home" icon={<Home size={19} />} />
+            <BottomTab to="/market" label="Food" title="Find food — marketplace" icon={<Store size={19} />} />
+            <BottomTab to="/search" label="Search" icon={<Search size={19} />} />
+            <BottomTab to="/orders" label="Orders" icon={<ShoppingBag size={19} />} />
+            <BottomTab to="/me" label="Profile" icon={<User size={19} />} />
           </div>
         </div>
       </nav>
@@ -118,12 +152,13 @@ export function NavigationShellRouter({ rightSlot }: Props) {
   )
 }
 
-function BottomTab({ to, label, icon }: { to: string; label: string; icon: ReactNode }) {
+function BottomTab({ to, label, icon, title }: { to: string; label: string; icon: ReactNode; title?: string }) {
   return (
     <NavLink
       to={to}
+      title={title}
       className={({ isActive }) =>
-        `gp-focus mx-auto flex w-full flex-col items-center justify-center gap-1 rounded-2xl px-3 py-2 text-xs font-semibold ${
+        `gp-focus mx-auto flex min-w-0 w-full max-w-[5.5rem] flex-col items-center justify-center gap-0.5 rounded-2xl px-1 py-2 text-[10px] font-semibold leading-tight sm:gap-1 sm:px-2 sm:text-xs ${
           isActive ? 'text-gp-primary' : 'text-gp-charcoal/65'
         }`
       }
