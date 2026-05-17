@@ -171,6 +171,7 @@ export default function AppRouter() {
       <div className={rootShellClass}>
         <NavigationShellRouter
           profilePath={user ? '/me' : '/login'}
+          hideBottomNav={messagesOpen}
           rightSlot={
             <>
               <NotificationsDropdown

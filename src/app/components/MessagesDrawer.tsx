@@ -1,6 +1,7 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { ChevronLeft, Edit3, MessageCircle, Search, SendHorizontal, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router-dom'
 import type { Message, Order, Plate, User } from '../../types'
 import { formatMoney, timeAgo } from '../../lib/format'
@@ -120,7 +121,7 @@ function ActiveThreadPane({
         <div ref={bottomRef} />
       </div>
 
-      <div className="relative z-10 shrink-0 border-t border-black/10 bg-gp-bg p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-12px_rgb(0_0_0/0.12)] dark:border-white/10">
+      <div className="relative z-10 shrink-0 border-t border-black/10 bg-gp-bg p-3 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-12px_rgb(0_0_0/0.12)] dark:border-white/10">
         <form
           className="flex items-end gap-2"
           onSubmit={(e) => {
@@ -224,6 +225,9 @@ export function MessagesDrawer({
     return () => window.removeEventListener('keydown', onKey)
   }, [open, onOpenChange, activeOrderId])
 
+  const [portalReady, setPortalReady] = useState(false)
+  useEffect(() => setPortalReady(true), [])
+
   useEffect(() => {
     if (!open) return
     function onPointerDownCapture(e: PointerEvent) {
@@ -237,13 +241,13 @@ export function MessagesDrawer({
     return () => document.removeEventListener('pointerdown', onPointerDownCapture, true)
   }, [open, onOpenChange])
 
-  return (
+  const drawer = (
     <AnimatePresence>
       {open ? (
         <>
           <motion.div
             key="messages-backdrop"
-            className="fixed inset-0 z-[80] bg-black/45 backdrop-blur-[2px] dark:bg-black/70"
+            className="fixed inset-0 z-[100] bg-black/45 backdrop-blur-[2px] dark:bg-black/70"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -254,7 +258,7 @@ export function MessagesDrawer({
           <motion.aside
             id="messages-drawer-panel"
             key="messages-panel"
-            className="fixed inset-y-0 right-0 z-[90] flex h-[100dvh] max-h-[100dvh] min-h-0 w-full max-w-[26.5rem] flex-col overflow-hidden bg-gp-bg shadow-[0_0_0_1px_rgb(0_0_0/0.07),-16px_0_52px_-10px_rgb(0_0_0/0.35)] dark:shadow-[0_0_0_1px_rgb(255_255_255/0.08),-18px_0_56px_-10px_rgb(0_0_0/0.55)]"
+            className="fixed inset-y-0 right-0 z-[110] flex h-[100dvh] max-h-[100dvh] min-h-0 w-full max-w-[26.5rem] flex-col overflow-hidden bg-gp-bg shadow-[0_0_0_1px_rgb(0_0_0/0.07),-16px_0_52px_-10px_rgb(0_0_0/0.35)] dark:shadow-[0_0_0_1px_rgb(255_255_255/0.08),-18px_0_56px_-10px_rgb(0_0_0/0.55)]"
             initial={{ x: '105%' }}
             animate={{ x: 0 }}
             exit={{ x: '105%' }}
@@ -477,4 +481,7 @@ export function MessagesDrawer({
       ) : null}
     </AnimatePresence>
   )
+
+  if (!portalReady) return null
+  return createPortal(drawer, document.body)
 }

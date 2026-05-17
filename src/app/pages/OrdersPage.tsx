@@ -177,6 +177,7 @@ export function OrdersPage({
         open={Boolean(activeOrder)}
         title={activeOrder ? `Chat about ${activeOrder.plateName}` : undefined}
         onClose={() => setOpenMessagesFor(null)}
+        sheetOnMobile
       >
         {activeOrder ? (
           <MessagesPane
@@ -209,7 +210,7 @@ function MessagesPane({
   }
 
   return (
-    <div className="flex h-[60vh] flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex items-center justify-between gap-2 border-b border-black/5 px-5 py-3">
         <div className="text-xs text-gp-charcoal/65">
           Status: <span className="font-semibold text-gp-charcoal">{order.status}</span>
@@ -260,7 +261,7 @@ function MessagesPane({
         )}
       </div>
 
-      <div className="border-t border-black/5 p-3">
+      <div className="shrink-0 border-t border-black/5 bg-gp-bg p-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <form
           className="flex items-center gap-2"
           onSubmit={(e) => {
