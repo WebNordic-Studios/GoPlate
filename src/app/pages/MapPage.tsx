@@ -296,6 +296,13 @@ export function MapPage({
             </div>
           </div>
 
+          <InThisViewPanel
+            className="mt-4 lg:hidden"
+            plates={sidebarPlates}
+            onOpenPlate={onOpenPlate}
+            listMaxHeight="max-h-[min(42vh,22rem)]"
+          />
+
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div className="rounded-2xl bg-white/70 p-4 shadow-natural ring-1 ring-black/5">
               <div className="flex items-center gap-2 font-display text-sm font-semibold text-gp-charcoal">
@@ -326,25 +333,50 @@ export function MapPage({
           </div>
         </div>
 
-        <aside className="lg:col-span-4">
-          <div className="flex items-center justify-between gap-2">
-            <div className="font-display text-lg font-semibold">In this view</div>
-            <span className="rounded-full bg-gp-primary/10 px-3 py-1 text-xs font-semibold text-gp-primary">
-              {sidebarPlates.length} here
-            </span>
-          </div>
-          <p className="mt-1 text-xs text-gp-charcoal/60">
-            Only dishes inside the map frame — pan or zoom to explore another pocket.
-          </p>
-          <div className="mt-4 max-h-[min(68vh,640px)] space-y-3 overflow-y-auto pr-1">
-            {sidebarPlates.map((p) => (
-              <MapPlateRow key={p.id} plate={p} onOpen={() => onOpenPlate(p.id)} />
-            ))}
-          </div>
-        </aside>
+        <InThisViewPanel
+          className="hidden lg:block lg:col-span-4"
+          plates={sidebarPlates}
+          onOpenPlate={onOpenPlate}
+          listMaxHeight="max-h-[min(68vh,640px)]"
+        />
       </div>
 
     </div>
+  )
+}
+
+function InThisViewPanel({
+  className = '',
+  plates,
+  onOpenPlate,
+  listMaxHeight,
+}: {
+  className?: string
+  plates: Plate[]
+  onOpenPlate: (plateId: string) => void
+  listMaxHeight: string
+}) {
+  return (
+    <aside className={className}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="font-display text-lg font-semibold">In this view</div>
+        <span className="rounded-full bg-gp-primary/10 px-3 py-1 text-xs font-semibold text-gp-primary">
+          {plates.length} here
+        </span>
+      </div>
+      <p className="mt-1 text-xs text-gp-charcoal/60">
+        Only dishes inside the map frame — pan or zoom to explore another pocket.
+      </p>
+      <div className={`mt-4 space-y-3 overflow-y-auto pr-1 ${listMaxHeight}`}>
+        {plates.length === 0 ? (
+          <p className="rounded-2xl bg-white/70 px-4 py-6 text-center text-sm text-gp-charcoal/60 ring-1 ring-black/5">
+            Pan or zoom the map to see dishes in this area.
+          </p>
+        ) : (
+          plates.map((p) => <MapPlateRow key={p.id} plate={p} onOpen={() => onOpenPlate(p.id)} />)
+        )}
+      </div>
+    </aside>
   )
 }
 
