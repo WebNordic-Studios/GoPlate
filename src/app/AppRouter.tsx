@@ -9,6 +9,8 @@ import { useMarketplaceContext } from '../state/marketplaceContext'
 import { useAuth } from '../state/auth'
 import { useSocial } from '../state/social'
 import { useReviews } from '../state/reviews'
+import { ReviewsProvider } from '../state/reviewsContext'
+import { plateDisplayRating } from '../lib/reviewStats'
 import { useMessages } from '../state/messages'
 import { useReports } from '../state/reports'
 import { useRecentlyViewed } from '../state/recentlyViewed'
@@ -22,7 +24,6 @@ import { PlateDetail } from './components/PlateDetail'
 import { CheckoutPage } from './pages/CheckoutPage'
 import { StartCookingPage } from './pages/StartCookingPage'
 import { OrdersPage } from './pages/OrdersPage'
-import { ProfilePage } from './pages/ProfilePage'
 import { MapPage } from './pages/MapPage'
 import { LoginPage } from './pages/LoginPage'
 import { SignUpPage } from './pages/SignUpPage'
@@ -129,7 +130,7 @@ export default function AppRouter() {
     plateId: string,
     opts?: { delivery?: boolean; contactlessInstructions?: string; tipCents?: number },
   ) {
-    const orderId = marketplace.reservePlate(plateId, opts)
+    const orderId = marketplace.reservePlate(plateId, { ...opts, buyerId: user?.id })
     if (orderId) {
       toast.push({
         kind: 'success',
@@ -166,8 +167,75 @@ export default function AppRouter() {
     setOpenPlateId(id)
   }
 
+  function syncPlateRatingFromReviews(plateId: string, reviewList = reviews.reviews) {
+    const plate = marketplace.byId.get(plateId)
+    if (!plate) return
+    const stats = plateDisplayRating(reviewList, plate)
+    marketplace.updatePlate(plateId, { rating: stats.rating, ratingCount: stats.count })
+  }
+
+  function handleSubmitReview(draft: { rating: number; body: string; photoDataUrls: string[] }) {
+    if (!reviewOrder || !reviewPlate || !user) return
+    if (reviews.reviews.some((r) => r.orderId === reviewOrder.id)) {
+      toast.push({ kind: 'error', title: 'Already reviewed', description: 'You already left a review for this order.' })
+      return
+    }
+    reviews.addReview({
+      orderId: reviewOrder.id,
+      plateId: reviewPlate.id,
+      cookId: reviewPlate.cook.id,
+      userId: user.id,
+      userName: user.displayName,
+      userAvatarUrl: user.avatarUrl,
+      rating: draft.rating,
+      body: draft.body,
+      photoDataUrls: draft.photoDataUrls,
+    })
+    marketplace.markOrderReviewed(reviewOrder.id)
+    syncPlateRatingFromReviews(reviewPlate.id, [
+      {
+        id: 'pending',
+        orderId: reviewOrder.id,
+        plateId: reviewPlate.id,
+        cookId: reviewPlate.cook.id,
+        userId: user.id,
+        userName: user.displayName,
+        userAvatarUrl: user.avatarUrl,
+        rating: draft.rating,
+        body: draft.body,
+        photoDataUrls: draft.photoDataUrls,
+        createdAtIso: new Date().toISOString(),
+      },
+      ...reviews.reviews,
+    ])
+    setReviewForOrderId(null)
+    toast.push({
+      kind: 'success',
+      title: 'Review posted',
+      description: 'Thanks for the feedback!',
+    })
+  }
+
+  function handleDeleteReview(reviewId: string) {
+    const review = reviews.reviews.find((r) => r.id === reviewId)
+    if (!review) return
+    const plate = marketplace.byId.get(review.plateId)
+    const remaining = reviews.reviews.filter((r) => r.id !== reviewId)
+    reviews.removeReview(reviewId)
+    if (review.orderId) marketplace.clearOrderReviewed(review.orderId)
+    if (plate) {
+      const stats = plateDisplayRating(
+        remaining.filter((r) => r.plateId === plate.id),
+        plate,
+      )
+      marketplace.updatePlate(plate.id, { rating: stats.rating, ratingCount: stats.count })
+    }
+    toast.push({ kind: 'info', title: 'Review removed' })
+  }
+
   return (
     <MarketplaceProvider value={marketplace}>
+      <ReviewsProvider api={reviews}>
       <div className={rootShellClass}>
         <NavigationShellRouter
           profilePath={user ? '/me' : '/login'}
@@ -292,6 +360,11 @@ export default function AppRouter() {
                   }}
                   onOpenPlate={(id) => setOpenPlateId(id)}
                   onReservePlate={(id) => navigate(`/checkout/${id}`)}
+                  currentUserId={user?.id}
+                  onCookReply={(reviewId, body) => {
+                    reviews.replyToReview(reviewId, body)
+                    toast.push({ kind: 'success', title: 'Reply posted', description: 'Visible on the review.' })
+                  }}
                 />
               }
             />
@@ -327,16 +400,7 @@ export default function AppRouter() {
               }
             />
 
-            <Route
-              path="/profile"
-              element={
-                user ? (
-                  <ProfilePage user={user} onOpenPlate={(id) => setOpenPlateId(id)} />
-                ) : (
-                  <Navigate to="/login" replace state={{ from: '/profile' }} />
-                )
-              }
-            />
+            <Route path="/profile" element={<Navigate to={user ? '/me' : '/login'} replace />} />
 
             <Route
               path="/account"
@@ -403,6 +467,8 @@ export default function AppRouter() {
                     user={user}
                     onLogout={() => auth.logout()}
                     onSaveProfile={(p) => auth.updateProfile(p)}
+                    onOpenPlate={(id) => setOpenPlateId(id)}
+                    onDeleteReview={handleDeleteReview}
                   />
                 ) : (
                   <Navigate to="/login" replace />
@@ -490,6 +556,11 @@ export default function AppRouter() {
               onReport={() =>
                 setReportTarget({ type: 'plate', id: openPlate.id, label: openPlate.name })
               }
+              onOpenCook={() => {
+                const cookId = openPlate.cook.id
+                setOpenPlateId(null)
+                navigate(`/cooks/${cookId}`)
+              }}
             />
           ) : null}
         </Modal>
@@ -499,26 +570,7 @@ export default function AppRouter() {
           plateName={reviewPlate?.name ?? ''}
           cookName={reviewPlate?.cook.name ?? ''}
           onClose={() => setReviewForOrderId(null)}
-          onSubmit={(draft) => {
-            if (!reviewOrder || !reviewPlate || !user) return
-            reviews.addReview({
-              plateId: reviewPlate.id,
-              cookId: reviewPlate.cook.id,
-              userId: user.id,
-              userName: user.displayName,
-              userAvatarUrl: user.avatarUrl,
-              rating: draft.rating,
-              body: draft.body,
-              photoDataUrls: draft.photoDataUrls,
-            })
-            marketplace.markOrderReviewed(reviewOrder.id)
-            setReviewForOrderId(null)
-            toast.push({
-              kind: 'success',
-              title: 'Review posted',
-              description: 'Thanks for the feedback!',
-            })
-          }}
+          onSubmit={handleSubmitReview}
         />
 
         {reportTarget ? (
@@ -552,6 +604,7 @@ export default function AppRouter() {
           />
         ) : null}
       </div>
+      </ReviewsProvider>
     </MarketplaceProvider>
   )
 }
@@ -594,6 +647,8 @@ function CookProfileRoute({
   onBlock,
   onOpenPlate,
   onReservePlate,
+  currentUserId,
+  onCookReply,
 }: {
   plates: Plate[]
   reviewsList: import('../types').Review[]
@@ -604,6 +659,8 @@ function CookProfileRoute({
   onBlock: (cookId: string, label: string) => void
   onOpenPlate: (id: string) => void
   onReservePlate: (id: string) => void
+  currentUserId?: string
+  onCookReply?: (reviewId: string, body: string) => void
 }) {
   const params = useParams()
   const cookId = params.cookId || ''
@@ -620,6 +677,8 @@ function CookProfileRoute({
       onReport={(input) => onReport(cookId, cookName, input)}
       onBlock={() => onBlock(cookId, cookName)}
       isBlocked={isBlocked(cookId)}
+      currentUserId={currentUserId}
+      onCookReply={onCookReply}
     />
   )
 }

@@ -10,10 +10,12 @@ import {
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Plate, Review } from '../../types'
-import { formatDistanceBadge, formatMoney, timeAgo } from '../../lib/format'
+import { formatDistanceBadge, formatMoney } from '../../lib/format'
 import { attachHorizontalWheelScroll } from '../../lib/horizontalWheelScroll'
 import { useSettings } from '../../state/settings'
+import { useReviewsContext } from '../../state/reviewsContext'
 import { Button } from '../../ui/Button'
+import { ReviewsSection } from './ReviewsSection'
 import { AllergenChip, DietaryBadge, SpiceMeter, VerifiedBadge } from '../../ui/Badges'
 
 export function PlateDetail({
@@ -26,6 +28,7 @@ export function PlateDetail({
   reviews,
   onShare,
   onReport,
+  onOpenCook,
 }: {
   plate: Plate
   onReserve: () => void
@@ -36,18 +39,18 @@ export function PlateDetail({
   reviews?: Review[]
   onShare?: () => void
   onReport?: () => void
+  onOpenCook?: () => void
 }) {
   const { settings } = useSettings()
+  const { plateStats } = useReviewsContext()
   const [imgIdx, setImgIdx] = useState(0)
   const soldOut = plate.portionsAvailable <= 0
+  const displayRating = plateStats(plate)
 
   const ingredients = useMemo(() => plate.ingredients.slice(0, 12), [plate.ingredients])
   const dietary = plate.dietary ?? []
   const allergens = plate.allergens ?? []
-  const sortedReviews = useMemo(
-    () => (reviews ? [...reviews].sort((a, b) => b.createdAtIso.localeCompare(a.createdAtIso)) : []),
-    [reviews],
-  )
+  const plateReviews = reviews ?? []
 
   const next = useCallback(() => {
     if (plate.images.length <= 1) return
@@ -145,20 +148,18 @@ export function PlateDetail({
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="font-display text-2xl font-semibold">{plate.name}</div>
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-gp-charcoal/70">
-              {settings.showCookAvatars ? (
-                <img
-                  src={plate.cook.avatarUrl}
-                  alt={plate.cook.name}
-                  className="h-8 w-8 rounded-full object-cover ring-2 ring-white"
-                />
-              ) : null}
-              <div className="font-semibold">{plate.cook.name}</div>
-              {plate.cook.verified ? <VerifiedBadge size="xs" /> : null}
+            <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gp-charcoal/70">
+              <CookProfileLink plate={plate} showAvatar={settings.showCookAvatars} onOpenCook={onOpenCook} />
+              <span className="hidden text-gp-charcoal/35 sm:inline" aria-hidden>
+                ·
+              </span>
               <div className="flex items-center gap-1">
-                <Star size={14} className="text-gp-primary" fill="currentColor" />
-                <span className="font-semibold">{plate.rating.toFixed(1)}</span>
-                <span className="text-gp-charcoal/50">({plate.ratingCount})</span>
+                <Star size={14} className="text-gp-primary" fill="currentColor" aria-hidden />
+                <span className="font-semibold">{displayRating.rating.toFixed(1)}</span>
+                <span className="text-gp-charcoal/50">
+                  ({displayRating.count}
+                  {displayRating.fromReviews ? ' reviews' : ''})
+                </span>
               </div>
             </div>
           </div>
@@ -280,65 +281,7 @@ export function PlateDetail({
           <p className="mt-2 text-sm text-gp-charcoal/75">{plate.cooksNote}</p>
         </div>
 
-        {sortedReviews.length > 0 ? (
-          <div className="mt-6">
-            <div className="flex items-center justify-between">
-              <div className="font-display text-base font-semibold">Recent reviews</div>
-              <span className="text-xs font-semibold text-gp-charcoal/60">
-                {sortedReviews.length} {sortedReviews.length === 1 ? 'review' : 'reviews'}
-              </span>
-            </div>
-            <ul className="mt-3 space-y-3">
-              {sortedReviews.slice(0, 3).map((r) => (
-                <li key={r.id} className="rounded-2xl bg-gp-surface/80 p-3 ring-1 ring-black/5">
-                  <div className="flex items-start gap-3">
-                    {r.userAvatarUrl ? (
-                      <img
-                        src={r.userAvatarUrl}
-                        alt=""
-                        className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-black/10"
-                      />
-                    ) : (
-                      <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-black/5 text-xs font-semibold text-gp-charcoal/70">
-                        {r.userName.slice(0, 1).toUpperCase()}
-                      </div>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="text-sm font-semibold">{r.userName}</div>
-                        <div className="flex items-center gap-1 text-xs text-gp-charcoal/60">
-                          <Star size={12} className="text-gp-primary" fill="currentColor" />
-                          {r.rating.toFixed(1)}
-                          <span className="text-gp-charcoal/40">· {timeAgo(r.createdAtIso)}</span>
-                        </div>
-                      </div>
-                      <p className="mt-1 text-sm leading-relaxed text-gp-charcoal/80">{r.body}</p>
-                      {r.photoDataUrls && r.photoDataUrls.length > 0 ? (
-                        <div className="mt-2 flex flex-wrap gap-1.5">
-                          {r.photoDataUrls.slice(0, 4).map((u, i) => (
-                            <img
-                              key={i}
-                              src={u}
-                              alt=""
-                              className="h-14 w-14 rounded-xl object-cover ring-1 ring-black/10"
-                            />
-                          ))}
-                        </div>
-                      ) : null}
-                      {r.cookReply ? (
-                        <div className="mt-3 rounded-xl bg-gp-secondary/10 p-2.5 text-xs text-gp-charcoal/80 ring-1 ring-gp-secondary/15">
-                          <div className="font-semibold text-gp-secondary">Reply from {plate.cook.name}</div>
-                          <div className="mt-1">{r.cookReply.body}</div>
-                          <div className="mt-1 text-[10px] text-gp-charcoal/50">{timeAgo(r.cookReply.createdAtIso)}</div>
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
+        <ReviewsSection reviews={plateReviews} plate={plate} cookName={plate.cook.name} />
 
         <div className="mt-6">
           <div className="font-display text-base font-semibold">Pickup Area (privacy-protected)</div>
@@ -356,5 +299,54 @@ export function PlateDetail({
         </div>
       </div>
     </div>
+  )
+}
+
+function CookProfileLink({
+  plate,
+  showAvatar,
+  onOpenCook,
+}: {
+  plate: Plate
+  showAvatar: boolean
+  onOpenCook?: () => void
+}) {
+  const avatar = showAvatar ? (
+    <img
+      src={plate.cook.avatarUrl}
+      alt=""
+      className="h-8 w-8 shrink-0 rounded-full object-cover ring-2 ring-white"
+      loading="lazy"
+    />
+  ) : (
+    <span
+      className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gp-secondary/15 font-display text-xs font-bold text-gp-secondary ring-2 ring-white"
+      aria-hidden
+    >
+      {plate.cook.name.trim().slice(0, 1).toUpperCase()}
+    </span>
+  )
+
+  const label = (
+    <>
+      {avatar}
+      <span className="truncate font-semibold text-gp-charcoal">{plate.cook.name}</span>
+      {plate.cook.verified ? <VerifiedBadge size="xs" /> : null}
+    </>
+  )
+
+  if (!onOpenCook) {
+    return <div className="inline-flex min-w-0 max-w-full items-center gap-2">{label}</div>
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onOpenCook}
+      className="gp-focus -ml-1 inline-flex min-w-0 max-w-full items-center gap-2 rounded-2xl px-1.5 py-1 text-left transition hover:bg-black/5"
+      aria-label={`View ${plate.cook.name} profile`}
+    >
+      {label}
+    </button>
   )
 }

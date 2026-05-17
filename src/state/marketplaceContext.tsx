@@ -13,10 +13,16 @@ export type MarketplaceApi = {
   removePlate: (id: string) => void
   reservePlate: (
     plateId: string,
-    opts?: { delivery?: boolean; contactlessInstructions?: string; tipCents?: number },
+    opts?: {
+      buyerId?: string
+      delivery?: boolean
+      contactlessInstructions?: string
+      tipCents?: number
+    },
   ) => string | null
   updateOrderStatus: (orderId: string, status: OrderStatus) => void
   markOrderReviewed: (orderId: string) => void
+  clearOrderReviewed: (orderId: string) => void
   recordView: (plateId: string) => void
 }
 

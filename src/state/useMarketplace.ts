@@ -157,7 +157,12 @@ export function useMarketplace() {
   const reservePlate = useCallback(
     (
       plateId: string,
-      opts?: { delivery?: boolean; contactlessInstructions?: string; tipCents?: number },
+      opts?: {
+        buyerId?: string
+        delivery?: boolean
+        contactlessInstructions?: string
+        tipCents?: number
+      },
     ) => {
       const plate = byId.get(plateId)
       if (!plate) return null
@@ -174,6 +179,7 @@ export function useMarketplace() {
         id: uid('order'),
         plateId,
         plateName: plate.name,
+        buyerId: opts?.buyerId,
         cookId: plate.cook.id,
         priceCents: plate.priceCents,
         pickupWindow: plate.pickupWindow,
@@ -210,6 +216,10 @@ export function useMarketplace() {
     setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, reviewed: true } : o)))
   }, [])
 
+  const clearOrderReviewed = useCallback((orderId: string) => {
+    setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, reviewed: false } : o)))
+  }, [])
+
   const recordView = useCallback((plateId: string) => {
     setViews((prev) => ({ ...prev, [plateId]: (prev[plateId] ?? 0) + 1 }))
   }, [])
@@ -225,6 +235,7 @@ export function useMarketplace() {
     reservePlate,
     updateOrderStatus,
     markOrderReviewed,
+    clearOrderReviewed,
     recordView,
   }
 }

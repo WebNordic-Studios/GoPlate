@@ -24,24 +24,30 @@ export function useReviews() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(reviews))
   }, [reviews])
 
-  const addReview = useCallback(
-    (input: Omit<Review, 'id' | 'createdAtIso'>) => {
+  const addReview = useCallback((input: Omit<Review, 'id' | 'createdAtIso'>) => {
+    let createdId = ''
+    setReviews((prev) => {
+      if (input.orderId && prev.some((r) => r.orderId === input.orderId)) {
+        return prev
+      }
       const review: Review = {
         ...input,
         id: uid('review'),
         createdAtIso: new Date().toISOString(),
       }
-      setReviews((prev) => [review, ...prev])
-      return review.id
-    },
-    [],
-  )
+      createdId = review.id
+      return [review, ...prev]
+    })
+    return createdId
+  }, [])
 
   const replyToReview = useCallback((reviewId: string, body: string) => {
+    const trimmed = body.trim()
+    if (!trimmed) return
     setReviews((prev) =>
       prev.map((r) =>
         r.id === reviewId
-          ? { ...r, cookReply: { body, createdAtIso: new Date().toISOString() } }
+          ? { ...r, cookReply: { body: trimmed, createdAtIso: new Date().toISOString() } }
           : r,
       ),
     )
@@ -58,6 +64,12 @@ export function useReviews() {
       arr.push(r)
       m.set(r.plateId, arr)
     }
+    for (const [id, arr] of m) {
+      m.set(
+        id,
+        [...arr].sort((a, b) => b.createdAtIso.localeCompare(a.createdAtIso)),
+      )
+    }
     return m
   }, [reviews])
 
@@ -68,8 +80,30 @@ export function useReviews() {
       arr.push(r)
       m.set(r.cookId, arr)
     }
+    for (const [id, arr] of m) {
+      m.set(
+        id,
+        [...arr].sort((a, b) => b.createdAtIso.localeCompare(a.createdAtIso)),
+      )
+    }
     return m
   }, [reviews])
 
-  return { reviews, byPlateId, byCookId, addReview, replyToReview, removeReview }
+  const byUserId = useMemo(() => {
+    const m = new Map<string, Review[]>()
+    for (const r of reviews) {
+      const arr = m.get(r.userId) ?? []
+      arr.push(r)
+      m.set(r.userId, arr)
+    }
+    for (const [id, arr] of m) {
+      m.set(
+        id,
+        [...arr].sort((a, b) => b.createdAtIso.localeCompare(a.createdAtIso)),
+      )
+    }
+    return m
+  }, [reviews])
+
+  return { reviews, byPlateId, byCookId, byUserId, addReview, replyToReview, removeReview }
 }

@@ -96,6 +96,8 @@ export type Order = {
   id: string
   plateId: string
   plateName: string
+  /** Account that placed the order. */
+  buyerId?: string
   cookId?: string
   priceCents: number
   pickupWindow: string
@@ -118,6 +120,8 @@ export type Order = {
 
 export type Review = {
   id: string
+  /** Order this review is tied to (one review per completed order). */
+  orderId?: string
   plateId: string
   cookId: string
   userId: string

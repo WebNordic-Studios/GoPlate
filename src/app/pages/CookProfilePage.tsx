@@ -3,9 +3,10 @@ import { useMemo, useState } from 'react'
 import type { Plate, Review } from '../../types'
 import { PlateCard } from '../components/PlateCard'
 import { ReportModal } from '../components/ReportModal'
+import { ReviewCard } from '../components/ReviewCard'
 import { Button } from '../../ui/Button'
 import { VerifiedBadge } from '../../ui/Badges'
-import { timeAgo } from '../../lib/format'
+import { useReviewsContext } from '../../state/reviewsContext'
 
 export function CookProfilePage({
   cookId,
@@ -18,6 +19,8 @@ export function CookProfilePage({
   onReport,
   onBlock,
   isBlocked,
+  currentUserId,
+  onCookReply,
 }: {
   cookId: string
   plates: Plate[]
@@ -29,6 +32,8 @@ export function CookProfilePage({
   onReport?: (input: { reason: string; details?: string }) => void
   onBlock?: () => void
   isBlocked?: boolean
+  currentUserId?: string
+  onCookReply?: (reviewId: string, body: string) => void
 }) {
   const [reportOpen, setReportOpen] = useState(false)
   const byCook = useMemo(
@@ -47,15 +52,13 @@ export function CookProfilePage({
     )
   }
 
+  const { cookStats } = useReviewsContext()
   const cookReviews = reviews.filter((r) => r.cookId === cookId)
-  const aggregateRating =
-    cookReviews.length > 0
-      ? cookReviews.reduce((s, r) => s + r.rating, 0) / cookReviews.length
-      : byCook.length > 0
-        ? byCook.reduce((s, p) => s + p.rating, 0) / byCook.length
-        : 0
-  const totalReviews =
-    cookReviews.length || byCook.reduce((s, p) => s + p.ratingCount, 0)
+  const ratingSummary = cookStats(cookId, plates)
+  const canReplyAsCook = Boolean(
+    currentUserId && onCookReply && (currentUserId === cookId || cookId === 'cook_you'),
+  )
+  const plateById = useMemo(() => new Map(plates.map((p) => [p.id, p])), [plates])
 
   return (
     <div className="gp-container pb-28 pt-6 md:pb-10">
@@ -83,7 +86,7 @@ export function CookProfilePage({
             <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-gp-charcoal/70">
               <div className="inline-flex items-center gap-1">
                 <Star size={16} className="text-gp-primary" fill="currentColor" />
-                <span className="font-semibold">{aggregateRating.toFixed(1)}</span>
+                <span className="font-semibold">{ratingSummary.rating.toFixed(1)}</span>
                 <span className="text-gp-charcoal/50">avg rating</span>
               </div>
               <span className="text-gp-charcoal/35">·</span>
@@ -92,7 +95,7 @@ export function CookProfilePage({
               </span>
               <span className="text-gp-charcoal/35">·</span>
               <span>
-                <span className="font-semibold text-gp-charcoal/80">{totalReviews}</span> reviews
+                <span className="font-semibold text-gp-charcoal/80">{ratingSummary.count}</span> reviews
               </span>
             </div>
           </div>
@@ -126,35 +129,31 @@ export function CookProfilePage({
         ))}
       </div>
 
-      {cookReviews.length > 0 ? (
-        <section className="mt-10">
-          <h2 className="font-display text-xl font-semibold">Recent reviews</h2>
+      <section className="mt-10">
+        <h2 className="font-display text-xl font-semibold">Reviews</h2>
+        {cookReviews.length > 0 ? (
           <ul className="mt-4 grid gap-3 md:grid-cols-2">
             {cookReviews
               .sort((a, b) => b.createdAtIso.localeCompare(a.createdAtIso))
-              .slice(0, 6)
               .map((r) => (
-                <li key={r.id} className="rounded-2xl bg-gp-surface/80 p-4 ring-1 ring-black/5">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-sm font-semibold">{r.userName}</div>
-                    <div className="inline-flex items-center gap-1 text-xs text-gp-charcoal/60">
-                      <Star size={12} className="text-gp-primary" fill="currentColor" />
-                      {r.rating.toFixed(1)}
-                      <span className="text-gp-charcoal/40">· {timeAgo(r.createdAtIso)}</span>
-                    </div>
-                  </div>
-                  <p className="mt-2 text-sm text-gp-charcoal/80">{r.body}</p>
-                  {r.cookReply ? (
-                    <div className="mt-2 rounded-xl bg-gp-secondary/10 p-2.5 text-xs text-gp-charcoal/80 ring-1 ring-gp-secondary/15">
-                      <div className="font-semibold text-gp-secondary">Reply from {cook.name}</div>
-                      <div className="mt-1">{r.cookReply.body}</div>
-                    </div>
-                  ) : null}
+                <li key={r.id}>
+                  <ReviewCard
+                    review={r}
+                    cookName={cook.name}
+                    plateName={plateById.get(r.plateId)?.name}
+                    onOpenPlate={() => onOpenPlate(r.plateId)}
+                    canReplyAsCook={canReplyAsCook}
+                    onCookReply={onCookReply}
+                  />
                 </li>
               ))}
           </ul>
-        </section>
-      ) : null}
+        ) : (
+          <p className="mt-3 rounded-2xl bg-gp-bg/60 px-4 py-5 text-center text-sm text-gp-charcoal/55 ring-1 ring-black/5">
+            No reviews yet — they appear here after buyers pick up and rate your plates.
+          </p>
+        )}
+      </section>
 
       {onReport ? (
         <ReportModal

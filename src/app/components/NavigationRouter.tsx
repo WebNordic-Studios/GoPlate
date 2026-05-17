@@ -1,4 +1,4 @@
-import { Cog, Home, MapPin, Plus, Search, ShoppingBag, Store, User } from 'lucide-react'
+import { Cog, Home, MapPin, Plus, Search, ShoppingBag, Store, User, type LucideIcon } from 'lucide-react'
 import { GoPlateLogoMark } from '../../ui/GoPlateLogo'
 import { NavLink, useNavigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
@@ -128,27 +128,12 @@ export function NavigationShellRouter({ rightSlot, profilePath = '/me', hideBott
             </div>
           </div>
 
-          {/* Narrow screens: extras not in the tab bar */}
+          {/* Narrow screens: quick links not in the tab bar */}
           <div className="md:hidden">
-            <div className="-mx-1 flex gap-2 overflow-x-auto overscroll-x-contain px-1 pb-3 pt-0.5 no-scrollbar">
-              <TopNavLink to={profilePath} size="sm" aria-label="Profile" title="Profile">
-                <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-                  <User size={14} className="shrink-0 text-gp-charcoal/55" aria-hidden />
-                  Profile
-                </span>
-              </TopNavLink>
-              <TopNavLink to="/cook" size="sm">
-                <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-                  <Plus size={14} className="shrink-0 text-gp-charcoal/55" aria-hidden />
-                  Create
-                </span>
-              </TopNavLink>
-              <TopNavLink to="/settings" aria-label="Settings" title="Settings" size="sm">
-                <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-                  <Cog size={14} className="shrink-0 text-gp-charcoal/55" aria-hidden />
-                  Settings
-                </span>
-              </TopNavLink>
+            <div className="grid grid-cols-3 gap-2 pb-3 pt-0.5">
+              <MobileQuickLink to={profilePath} label="Profile" icon={User} tint="secondary" />
+              <MobileQuickLink to="/cook" label="Create" icon={Plus} tint="primary" />
+              <MobileQuickLink to="/settings" label="Settings" icon={Cog} tint="neutral" ariaLabel="Settings" />
             </div>
           </div>
         </div>
@@ -168,6 +153,47 @@ export function NavigationShellRouter({ rightSlot, profilePath = '/me', hideBott
       </nav>
       ) : null}
     </>
+  )
+}
+
+function MobileQuickLink({
+  to,
+  label,
+  icon: Icon,
+  tint,
+  ariaLabel,
+}: {
+  to: string
+  label: string
+  icon: LucideIcon
+  tint: 'primary' | 'secondary' | 'neutral'
+  ariaLabel?: string
+}) {
+  const iconWrap =
+    tint === 'primary'
+      ? 'bg-gp-primary/12 text-gp-primary'
+      : tint === 'secondary'
+        ? 'bg-gp-secondary/10 text-gp-secondary'
+        : 'bg-black/[0.05] text-gp-charcoal/70'
+
+  return (
+    <NavLink
+      to={to}
+      aria-label={ariaLabel ?? label}
+      title={label}
+      className={({ isActive }) =>
+        `gp-focus flex min-w-0 flex-col items-center gap-1.5 rounded-2xl px-2 py-2.5 text-center transition ${
+          isActive
+            ? 'bg-white shadow-natural ring-1 ring-gp-primary/25'
+            : 'bg-white/75 ring-1 ring-black/[0.06] hover:bg-white hover:ring-black/10'
+        }`
+      }
+    >
+      <span className={`grid h-9 w-9 place-items-center rounded-xl ${iconWrap}`}>
+        <Icon size={18} strokeWidth={2} aria-hidden />
+      </span>
+      <span className="w-full truncate text-[11px] font-semibold leading-tight text-gp-charcoal">{label}</span>
+    </NavLink>
   )
 }
 

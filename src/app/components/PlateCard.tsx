@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 import type { Plate } from '../../types'
 import { formatDistanceBadge, formatMoney } from '../../lib/format'
 import { useSettings } from '../../state/settings'
+import { useReviewsContext } from '../../state/reviewsContext'
 import { Button } from '../../ui/Button'
 import { DietaryBadge } from '../../ui/Badges'
 
@@ -24,6 +25,8 @@ export function PlateCard({
   onOpenCook?: () => void
 }) {
   const { settings } = useSettings()
+  const { plateStats } = useReviewsContext()
+  const displayRating = plateStats(plate)
   const systemReduce = useReducedMotion() === true
   const reduceMotion = settings.reduceMotion || systemReduce
 
@@ -122,9 +125,9 @@ export function PlateCard({
                 </span>
                 <div className="flex shrink-0 items-center gap-1 font-medium text-gp-charcoal/75">
                   <Star size={14} className="text-gp-primary" fill="currentColor" aria-hidden />
-                  <span>{plate.rating.toFixed(1)}</span>
-                  {plate.ratingCount > 0 ? (
-                    <span className="text-gp-charcoal/50">({plate.ratingCount})</span>
+                  <span>{displayRating.rating.toFixed(1)}</span>
+                  {displayRating.count > 0 ? (
+                    <span className="text-gp-charcoal/50">({displayRating.count})</span>
                   ) : (
                     <span className="text-xs font-semibold text-gp-charcoal/45">New</span>
                   )}
