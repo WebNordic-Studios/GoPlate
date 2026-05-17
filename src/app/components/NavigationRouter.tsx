@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react'
 
 type Props = {
   rightSlot?: ReactNode
+  profilePath?: string
 }
 
 function TopNavLink({
@@ -40,7 +41,7 @@ function TopNavLink({
   )
 }
 
-export function NavigationShellRouter({ rightSlot }: Props) {
+export function NavigationShellRouter({ rightSlot, profilePath = '/me' }: Props) {
   const [q, setQ] = useState('')
   const navigate = useNavigate()
 
@@ -66,9 +67,9 @@ export function NavigationShellRouter({ rightSlot }: Props) {
               <span className="flex shrink-0 items-center justify-center [-webkit-tap-highlight-color:transparent]">
                 <GoPlateLogoMark size="md" decorative className="drop-shadow-[0_1px_3px_rgb(0_0_0_/0.08)]" />
               </span>
-              <div className="hidden sm:block">
+              <div className="min-w-0">
                 <div className="font-display text-base font-semibold leading-none">GoPlate</div>
-                <div className="text-xs text-gp-charcoal/60">Neighborhood gourmet</div>
+                <div className="hidden text-xs text-gp-charcoal/60 sm:block">Home cooking, one block away</div>
               </div>
             </NavLink>
 
@@ -127,7 +128,13 @@ export function NavigationShellRouter({ rightSlot }: Props) {
 
           {/* Narrow screens: extras not in the tab bar */}
           <div className="md:hidden">
-            <div className="-mx-1 flex gap-2 overflow-x-auto pb-3 pt-0.5 no-scrollbar">
+            <div className="-mx-1 flex gap-2 overflow-x-auto overscroll-x-contain px-1 pb-3 pt-0.5 no-scrollbar">
+              <TopNavLink to={profilePath} size="sm" aria-label="Profile" title="Profile">
+                <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                  <User size={14} className="shrink-0 text-gp-charcoal/55" aria-hidden />
+                  Profile
+                </span>
+              </TopNavLink>
               <TopNavLink to="/cook" size="sm">
                 <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
                   <Plus size={14} className="shrink-0 text-gp-charcoal/55" aria-hidden />

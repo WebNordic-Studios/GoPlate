@@ -84,22 +84,33 @@ export function LandingPage({
       ) : null}
 
       <section className="gp-container pb-28 pt-2 md:pb-16">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Active neighborhoods" value="120+" hint="Pilot coverage expanding monthly" />
-          <StatCard label="Avg. cook rating" value="4.8" hint="Across verified pickups" />
-          <StatCard label="Median pickup radius" value="2.1 mi" hint="Short trips, fresher food" />
-          <StatCard label="Same-day windows" value="Daily" hint="Morning, lunch, and evening slots" />
+        <div className="grid gap-3 sm:grid-cols-3">
+          <ValueCard
+            icon={<MapPinned className="h-5 w-5" aria-hidden />}
+            title="Walk to pickup"
+            body="Most meals are a short stroll away — not a cross-town drive."
+          />
+          <ValueCard
+            icon={<ChefHat className="h-5 w-5" aria-hidden />}
+            title="Know your cook"
+            body="Real profiles, specialties, and pickup windows you can plan around."
+          />
+          <ValueCard
+            icon={<Leaf className="h-5 w-5" aria-hidden />}
+            title="Small batches"
+            body="Limited portions mean fresher food and less waste."
+          />
         </div>
 
         <div className="mt-12 rounded-[2rem] bg-white/70 p-6 shadow-natural ring-1 ring-black/5 sm:p-8">
           <div className="max-w-2xl">
             <p className="text-xs font-semibold uppercase tracking-wider text-gp-secondary/80">How it works</p>
             <h2 className="mt-2 font-display text-2xl font-semibold tracking-tight text-gp-charcoal sm:text-3xl">
-              From stove to doorstep in three calm steps
+              Browse, reserve, pick up — that simple
             </h2>
             <p className="mt-3 text-sm text-gp-charcoal/70 sm:text-base">
-              GoPlate keeps logistics lightweight so neighbors can focus on flavor, timing, and trust — not endless
-              coordination threads.
+              Whether you are hungry tonight or listing your first plate, GoPlate keeps every step clear and
+              neighbor-friendly.
             </p>
           </div>
           <div className="mt-8 grid gap-6 lg:grid-cols-2">
@@ -171,7 +182,7 @@ export function LandingPage({
           <div className="max-w-2xl">
             <p className="text-xs font-semibold uppercase tracking-wider text-gp-secondary/80">Why GoPlate</p>
             <h2 className="mt-2 font-display text-2xl font-semibold tracking-tight text-gp-charcoal sm:text-3xl">
-              Built for blocks, not bulk logistics
+              Built for blocks, not big-box logistics
             </h2>
             <p className="mt-3 text-sm text-gp-charcoal/70 sm:text-base">
               Every surface is tuned for clarity: fewer taps, honest descriptions, and respectful boundaries around
@@ -215,14 +226,14 @@ export function LandingPage({
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="font-display text-xl font-semibold">About GoPlate</div>
-                  <p className="mt-3 text-sm text-gp-charcoal/75">
-                    GoPlate is a hyper-local marketplace for home-cooked meals and artisanal bakes. It’s built for
-                    neighbors: short pickup windows, privacy-first locations, and small-batch drops you can trust.
+                  <p className="mt-3 text-sm leading-relaxed text-gp-charcoal/75">
+                    GoPlate connects neighbors who cook at home with neighbors who want a great meal nearby. You
+                    reserve a plate, pick it up on schedule, and skip the anonymous delivery middleman.
                   </p>
                   <div className="mt-5 grid gap-3">
-                    <Blurb title="Neighborhood-first">Discover cooks within a few miles — not across town.</Blurb>
-                    <Blurb title="Privacy protected">Pickup areas are approximate until checkout.</Blurb>
-                    <Blurb title="Small-batch quality">Limited portions means fresher food and better craft.</Blurb>
+                    <Blurb title="Truly local">See what is cooking within a few blocks or a short walk.</Blurb>
+                    <Blurb title="Pickup, not delivery">Agreed windows and handoff codes keep handoffs simple.</Blurb>
+                    <Blurb title="Cooks you can meet">Profiles, ratings, and messages — the way a block should feel.</Blurb>
                   </div>
                 </div>
               </div>
@@ -328,12 +339,20 @@ export function LandingPage({
   )
 }
 
-function StatCard({ label, value, hint }: { label: string; value: string; hint: string }) {
+function ValueCard({
+  icon,
+  title,
+  body,
+}: {
+  icon: React.ReactNode
+  title: string
+  body: string
+}) {
   return (
     <div className="rounded-2xl bg-white/70 p-5 shadow-natural ring-1 ring-black/5">
-      <div className="text-xs font-semibold uppercase tracking-wide text-gp-charcoal/50">{label}</div>
-      <div className="mt-2 font-display text-2xl font-semibold text-gp-charcoal">{value}</div>
-      <p className="mt-2 text-xs leading-relaxed text-gp-charcoal/60">{hint}</p>
+      <div className="grid h-10 w-10 place-items-center rounded-2xl bg-gp-primary/10 text-gp-primary">{icon}</div>
+      <div className="mt-3 font-display text-base font-semibold text-gp-charcoal">{title}</div>
+      <p className="mt-2 text-sm leading-relaxed text-gp-charcoal/70">{body}</p>
     </div>
   )
 }

@@ -32,11 +32,11 @@ export function Hero({ initialZip = '', onSearchZip }: Props) {
               <div className="text-xs font-semibold uppercase tracking-wider text-gp-charcoal/55">GoPlate</div>
             </div>
             <h1 className="font-display text-3xl font-semibold leading-tight tracking-tight text-gp-charcoal sm:text-5xl">
-              The kitchen next door is now your favorite restaurant.
+              Home cooking from someone you could wave to.
             </h1>
             <p className="mt-4 max-w-xl text-base text-gp-charcoal/70 sm:text-lg">
-              Discover hyper-local home-cooked meals and small-batch bakery drops. Reserve a pickup window,
-              meet your neighborhood chefs, eat better tonight.
+              Browse plates and small-batch bakes within walking distance. Reserve a pickup window, meet your
+              cook, and eat well tonight — no delivery apps required.
             </p>
 
             <form

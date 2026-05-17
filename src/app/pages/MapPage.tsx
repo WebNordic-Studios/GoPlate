@@ -88,6 +88,8 @@ export function MapPage({
       center,
       zoom: 11,
       scrollWheelZoom: true,
+      touchZoom: true,
+      dragging: true,
     })
 
     // Voyager + gp-map-apple-like CSS: closest Leaflet-friendly analogue to Apple Maps’ warm, quiet standard style.
@@ -126,10 +128,10 @@ export function MapPage({
           const p = arr[0]
           const color = categoryMarkerColor(p.category)
           const icon = L.divIcon({
-            className: '',
-            html: `<div style="width:14px;height:14px;border-radius:999px;background:${color};box-shadow:0 8px 18px -10px rgba(17,24,39,.7);border:2px solid white"></div>`,
-            iconSize: [14, 14],
-            iconAnchor: [7, 7],
+            className: 'gp-map-pin',
+            html: `<div style="width:22px;height:22px;display:grid;place-items:center"><span style="width:14px;height:14px;border-radius:999px;background:${color};box-shadow:0 8px 18px -10px rgba(17,24,39,.7);border:2px solid white"></span></div>`,
+            iconSize: [22, 22],
+            iconAnchor: [11, 11],
           })
           const m = L.marker([p.geo.lat, p.geo.lng], { icon }).addTo(layer)
           const content = document.createElement('div')
@@ -150,7 +152,12 @@ export function MapPage({
             const btn = content.querySelector('button[data-plate-id]') as HTMLButtonElement | null
             if (!btn) return
             L.DomEvent.disableClickPropagation(btn)
-            L.DomEvent.on(btn, 'click', () => onOpenPlate(p.id))
+            const open = () => onOpenPlate(p.id)
+            L.DomEvent.on(btn, 'click', open)
+            L.DomEvent.on(btn, 'touchend', (e) => {
+              L.DomEvent.preventDefault(e)
+              open()
+            })
           })
         } else {
           const avgLat = arr.reduce((s, p) => s + p.geo.lat, 0) / arr.length
@@ -201,7 +208,24 @@ export function MapPage({
 
     onMapViewChanged()
 
+    const fitMap = () => {
+      map.invalidateSize({ animate: false })
+      onMapViewChanged()
+    }
+    const fitTimer = window.setTimeout(fitMap, 120)
+    window.addEventListener('resize', fitMap)
+    const ro =
+      typeof ResizeObserver !== 'undefined'
+        ? new ResizeObserver(() => {
+            window.requestAnimationFrame(fitMap)
+          })
+        : null
+    if (ro && mapEl.current) ro.observe(mapEl.current)
+
     return () => {
+      window.clearTimeout(fitTimer)
+      window.removeEventListener('resize', fitMap)
+      ro?.disconnect()
       map.off('zoomend moveend', onMapViewChanged)
       layer.clearLayers()
       map.remove()
@@ -264,10 +288,10 @@ export function MapPage({
 
       <div className="mt-6 grid gap-6 lg:grid-cols-12 lg:items-start">
         <div className="lg:col-span-8">
-          <div className="relative isolate z-0 overflow-hidden rounded-[2rem] bg-white shadow-natural ring-1 ring-black/5">
-            <div className="h-[52vh] min-h-[360px] lg:h-[min(68vh,640px)]">
-              <div className="gp-map-apple-like h-full w-full">
-                <div ref={mapEl} className="h-full w-full" />
+          <div className="relative z-[1] overflow-hidden rounded-[2rem] bg-white shadow-natural ring-1 ring-black/5">
+            <div className="h-[min(52vh,420px)] min-h-[280px] sm:min-h-[360px] lg:h-[min(68vh,640px)]">
+              <div className="gp-map-apple-like h-full w-full touch-pan-x touch-pan-y">
+                <div ref={mapEl} className="h-full w-full min-h-[280px]" />
               </div>
             </div>
           </div>
@@ -320,25 +344,6 @@ export function MapPage({
         </aside>
       </div>
 
-      <div className="mt-10 rounded-[2rem] bg-white/70 p-6 shadow-natural ring-1 ring-black/5 sm:p-8">
-        <h2 className="font-display text-xl font-semibold sm:text-2xl">Why a map-first view</h2>
-        <p className="mt-2 max-w-3xl text-sm text-gp-charcoal/70">
-          Hyper-local food is inherently spatial: two dishes with the same name can feel totally different when one is
-          a six-minute walk and the other is a twenty-minute drive. The map keeps distance honest, helps you batch
-          pickups, and reinforces that GoPlate is about neighbors — not anonymous city-wide delivery.
-        </p>
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
-          <MapBlurb title="Plan a loop" body="Spot clusters, line up two pickups in one outing, and avoid backtracking." />
-          <MapBlurb
-            title="Privacy-aware pins"
-            body="Markers reflect general areas; exact addresses stay gated until checkout, matching the rest of the app."
-          />
-          <MapBlurb
-            title="Apple Maps–style polish"
-            body="Apple doesn’t ship public web tiles, so we pair a clean OSM-backed basemap with warm, softened rendering—cream land, gentle greens, calm blues—for that familiar Maps calm."
-          />
-        </div>
-      </div>
     </div>
   )
 }
@@ -404,15 +409,6 @@ function MapPlateRow({ plate, onOpen }: { plate: Plate; onOpen: () => void }) {
         </div>
         {soldOut ? <div className="mt-1 text-[11px] font-semibold text-gp-charcoal/50">Sold out</div> : null}
       </div>
-    </div>
-  )
-}
-
-function MapBlurb({ title, body }: { title: string; body: string }) {
-  return (
-    <div className="rounded-2xl bg-gp-bg p-4 ring-1 ring-black/5">
-      <div className="font-display text-sm font-semibold text-gp-charcoal">{title}</div>
-      <p className="mt-2 text-sm leading-relaxed text-gp-charcoal/70">{body}</p>
     </div>
   )
 }

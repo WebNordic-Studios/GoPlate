@@ -176,7 +176,7 @@ export function StartCookingPage({
   }
 
   return (
-    <div className="gp-container pb-28 pt-6 md:pb-10">
+    <div className="gp-container pb-32 pt-6 md:pb-10">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="font-display text-2xl font-semibold">Create</div>
@@ -733,7 +733,8 @@ function Stepper({ step }: { step: number }) {
         return (
           <div
             key={s.title}
-            className={`flex items-center gap-2 rounded-2xl px-3 py-2 text-xs font-semibold ring-1 transition ${
+            title={s.title}
+            className={`flex shrink-0 items-center gap-2 rounded-2xl px-3 py-2 text-xs font-semibold ring-1 transition ${
               active
                 ? 'bg-gp-secondary text-white ring-black/5'
                 : done
@@ -742,7 +743,7 @@ function Stepper({ step }: { step: number }) {
             }`}
           >
             {s.icon}
-            {s.title}
+            <span className="hidden min-[380px]:inline">{s.title}</span>
           </div>
         )
       })}

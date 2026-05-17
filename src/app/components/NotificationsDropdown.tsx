@@ -58,7 +58,7 @@ export function NotificationsDropdown({ open, onOpenChange, user, orders, badgeC
 
       {open ? (
         <div
-          className="absolute right-0 top-full z-[60] mt-2 w-[min(20rem,calc(100vw-1.25rem))] overflow-hidden rounded-2xl border border-black/[0.08] bg-white/95 shadow-[0_12px_40px_-12px_rgb(0_0_0/0.35)] ring-1 ring-black/[0.04] backdrop-blur-glass dark:border-white/12 dark:bg-gp-surface/95 dark:ring-white/10 dark:shadow-[0_20px_50px_-16px_rgb(0_0_0/0.65)]"
+          className="fixed left-3 right-3 top-[calc(4.75rem+0.35rem)] z-[70] max-h-[min(24rem,calc(100dvh-6rem))] overflow-hidden rounded-2xl border border-black/[0.08] bg-white/95 shadow-[0_12px_40px_-12px_rgb(0_0_0/0.35)] ring-1 ring-black/[0.04] backdrop-blur-glass sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[min(20rem,calc(100vw-1.25rem))] sm:max-h-[min(22rem,65vh)] dark:border-white/12 dark:bg-gp-surface/95 dark:ring-white/10 dark:shadow-[0_20px_50px_-16px_rgb(0_0_0/0.65)]"
           role="dialog"
           aria-label="Notifications"
         >

@@ -82,7 +82,7 @@ function ActiveThreadPane({
         <div className="h-10 w-10 shrink-0" aria-hidden />
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3 pb-4">
         {!sorted.length ? (
           <div className="mx-auto mt-16 max-w-[16rem] text-center">
             <p className="text-sm font-semibold text-gp-charcoal">No messages yet</p>
@@ -120,7 +120,7 @@ function ActiveThreadPane({
         <div ref={bottomRef} />
       </div>
 
-      <div className="shrink-0 border-t border-black/10 bg-gp-bg p-3 dark:border-white/10">
+      <div className="relative z-10 shrink-0 border-t border-black/10 bg-gp-bg p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-12px_rgb(0_0_0/0.12)] dark:border-white/10">
         <form
           className="flex items-end gap-2"
           onSubmit={(e) => {

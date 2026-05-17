@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ChefHat, Check, MessageCircle, Package, Send, Star, Timer, X } from 'lucide-react'
-import type { Message, Order, OrderStatus, Plate } from '../../types'
+import type { Message, Order, OrderStatus, Plate, User } from '../../types'
 import { Button } from '../../ui/Button'
 import { Modal } from '../../ui/Modal'
 import { EmptyState } from '../../ui/EmptyState'
@@ -10,6 +10,7 @@ import { formatMoney, timeAgo } from '../../lib/format'
 const STATUS_FLOW: OrderStatus[] = ['Reserved', 'Cooking', 'Ready', 'Picked up']
 
 export function OrdersPage({
+  user,
   orders,
   plates,
   messagesByOrderId,
@@ -18,6 +19,7 @@ export function OrdersPage({
   onCancel,
   onLeaveReview,
 }: {
+  user: User | null
   orders: Order[]
   plates: Map<string, Plate>
   messagesByOrderId: Map<string, Message[]>
@@ -44,6 +46,9 @@ export function OrdersPage({
           orders.map((o) => {
             const plate = plates.get(o.plateId)
             const cancelled = o.status === 'Cancelled'
+            const isCookForOrder = Boolean(
+              user && (o.cookId === user.id || plate?.cook.id === user.id),
+            )
             return (
               <article
                 key={o.id}
@@ -111,7 +116,7 @@ export function OrdersPage({
                 <div className="flex flex-wrap items-center gap-2 border-t border-black/5 p-3 sm:p-4">
                   {!cancelled && o.status !== 'Picked up' ? (
                     <>
-                      {STATUS_FLOW.indexOf(o.status) < STATUS_FLOW.length - 1 ? (
+                      {isCookForOrder && STATUS_FLOW.indexOf(o.status) < STATUS_FLOW.length - 1 ? (
                         <Button
                           variant="ghost"
                           onClick={() => onUpdateStatus(o.id, nextStatus(o.status))}
@@ -120,9 +125,11 @@ export function OrdersPage({
                           Mark "{nextStatus(o.status)}"
                         </Button>
                       ) : null}
-                      <Button variant="ghost" onClick={() => onCancel(o.id)} leftIcon={<X size={14} />}>
-                        Cancel
-                      </Button>
+                      {!isCookForOrder ? (
+                        <Button variant="ghost" onClick={() => onCancel(o.id)} leftIcon={<X size={14} />}>
+                          Cancel
+                        </Button>
+                      ) : null}
                     </>
                   ) : null}
 

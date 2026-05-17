@@ -113,6 +113,19 @@
    */
   .gp-map-apple-like .leaflet-container {
     background-color: #ebe8df;
+    touch-action: none;
+    z-index: 0;
+  }
+
+  .gp-map-apple-like .leaflet-pane,
+  .gp-map-apple-like .leaflet-top,
+  .gp-map-apple-like .leaflet-bottom {
+    z-index: 1;
+  }
+
+  .gp-map-pin {
+    background: transparent !important;
+    border: none !important;
   }
 
   .gp-map-apple-like .leaflet-tile-pane img.leaflet-tile {

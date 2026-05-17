@@ -170,6 +170,7 @@ export default function AppRouter() {
     <MarketplaceProvider value={marketplace}>
       <div className={rootShellClass}>
         <NavigationShellRouter
+          profilePath={user ? '/me' : '/login'}
           rightSlot={
             <>
               <NotificationsDropdown
@@ -307,6 +308,7 @@ export default function AppRouter() {
               path="/orders"
               element={
                 <OrdersPage
+                  user={user}
                   orders={marketplace.orders}
                   plates={marketplace.byId}
                   messagesByOrderId={messages.byOrderId}
