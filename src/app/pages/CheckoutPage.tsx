@@ -12,6 +12,7 @@ import { Button } from '../../ui/Button'
 import { LoadingSpinner } from '../../ui/LoadingSpinner'
 import { PaymentForm } from '../../ui/PaymentForm'
 import { useSettings } from '../../state/settings'
+import { KitchenDisclaimer } from '../../ui/KitchenDisclaimer'
 
 const TIP_PERCENTS = [0, 10, 15, 20] as const
 
@@ -254,6 +255,10 @@ export function CheckoutPage({
 
             <div className="mt-5">
               <PaymentForm form={form} errors={errors} savedMethods={savedMethods} onChange={patchForm} />
+            </div>
+
+            <div className="mt-5">
+              <KitchenDisclaimer compact />
             </div>
 
             {enableOrderTexts && plate ? (

@@ -67,3 +67,4 @@ export function Modal({ open, title, children, onClose, sheetOnMobile = false }:
     </AnimatePresence>
   )
 }
+

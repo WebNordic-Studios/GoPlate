@@ -47,6 +47,9 @@ import { useSettings } from '../state/settings'
 import { DEFAULT_SETTINGS } from '../state/settingsModel'
 import { useToast } from '../ui/Toast'
 import { countMessageThreadsUnread, countPickupReadyBellBadge } from './lib/headerUnreadBadges'
+import { messageRoleForOrder } from './lib/orderRoles'
+import { useWaitlist } from '../state/waitlist'
+import { FavoritesPage } from './pages/FavoritesPage'
 
 export default function AppRouter() {
   const marketplace = useMarketplace()
@@ -108,7 +111,12 @@ function AppRouterInner({
 
   // Review / report / share state for the active plate modal.
   const [reviewForOrderId, setReviewForOrderId] = useState<string | null>(null)
-  const [reportTarget, setReportTarget] = useState<{ type: 'plate' | 'cook'; id: string; label: string } | null>(null)
+  const [reportTarget, setReportTarget] = useState<{
+    type: 'plate' | 'cook' | 'review'
+    id: string
+    label: string
+  } | null>(null)
+  const waitlist = useWaitlist(user?.id ?? null)
   const [shareForPlateId, setShareForPlateId] = useState<string | null>(null)
 
   const openPlate = openPlateId ? marketplace.byId.get(openPlateId) ?? null : null
@@ -329,7 +337,12 @@ function AppRouterInner({
                 orders={marketplace.orders}
                 messagesByOrderId={messages.byOrderId}
                 platesById={marketplace.byId}
-                onSendMessage={(orderId, body) => messages.sendMessage(orderId, 'buyer', body)}
+                onSendMessage={(orderId, body) => {
+                  const order = marketplace.orders.find((o) => o.id === orderId)
+                  const plate = order ? marketplace.byId.get(order.plateId) : undefined
+                  const role = messageRoleForOrder(order!, user!.id, plate)
+                  messages.sendMessage(orderId, role, body)
+                }}
                 forcedReduceMotion={settings.reduceMotion}
               />
               <NavLink
@@ -374,7 +387,41 @@ function AppRouterInner({
                   onOpenCook={(cookId) => navigate(`/cooks/${cookId}`)}
                   followsByCookId={social.followsByCookId}
                   likesByPlateId={social.likesByPlateId}
+                  waitlist={{
+                    isJoined: waitlist.isJoined,
+                    onJoin: (id) => {
+                      if (!user) {
+                        navigate('/login', { state: { from: '/market' } })
+                        return
+                      }
+                      waitlist.join(id)
+                      toast.push({ kind: 'success', title: 'On waitlist', description: 'We will notify you when a portion opens.' })
+                    },
+                    onLeave: (id) => {
+                      waitlist.leave(id)
+                      toast.push({ kind: 'info', title: 'Removed from waitlist' })
+                    },
+                    requiresLogin: !user,
+                    onLogin: () => navigate('/login', { state: { from: '/market' } }),
+                  }}
                 />
+              }
+            />
+
+            <Route
+              path="/favorites"
+              element={
+                user ? (
+                  <FavoritesPage
+                    plates={visiblePlates}
+                    likesByPlateId={social.likesByPlateId}
+                    onOpenPlate={(id) => setOpenPlateId(id)}
+                    onReservePlate={(id) => navigate(`/checkout/${id}`)}
+                    onOpenCook={(cookId) => navigate(`/cooks/${cookId}`)}
+                  />
+                ) : (
+                  <Navigate to="/login" replace state={{ from: '/favorites' }} />
+                )
               }
             />
 
@@ -419,6 +466,14 @@ function AppRouterInner({
                     reviews.replyToReview(reviewId, body)
                     toast.push({ kind: 'success', title: 'Reply posted', description: 'Visible on the review.' })
                   }}
+                  userCookVerification={user?.cookVerification}
+                  onUnblock={(cookId) => {
+                    auth.unblockCook(cookId)
+                    toast.push({ kind: 'success', title: 'Cook unblocked' })
+                  }}
+                  onReportReview={(reviewId, label) =>
+                    setReportTarget({ type: 'review', id: reviewId, label })
+                  }
                 />
               }
             />
@@ -445,7 +500,12 @@ function AppRouterInner({
                   orders={marketplace.orders}
                   plates={marketplace.byId}
                   messagesByOrderId={messages.byOrderId}
-                  onSendMessage={(orderId, from, body) => messages.sendMessage(orderId, from, body)}
+                  onSendMessage={(orderId, body) => {
+                    const order = marketplace.orders.find((o) => o.id === orderId)
+                    const plate = order ? marketplace.byId.get(order.plateId) : undefined
+                    const role = messageRoleForOrder(order!, user!.id, plate)
+                    messages.sendMessage(orderId, role, body)
+                  }}
                   onUpdateStatus={(orderId, status) => {
                     marketplace.updateOrderStatus(orderId, status)
                     toast.push({ kind: 'info', title: `Order ${status}` })
@@ -647,6 +707,18 @@ function AppRouterInner({
                 setOpenPlateId(null)
                 navigate(`/cooks/${cookId}`)
               }}
+              waitlistJoined={waitlist.isJoined(openPlate.id)}
+              onJoinWaitlist={() => {
+                if (!user) {
+                  navigate('/login', { state: { from: `/checkout/${openPlate.id}` } })
+                  return
+                }
+                waitlist.join(openPlate.id)
+                toast.push({ kind: 'success', title: 'On waitlist', description: 'We will notify you when a portion opens.' })
+              }}
+              onLeaveWaitlist={() => waitlist.leave(openPlate.id)}
+              waitlistRequiresLogin={!user}
+              onWaitlistLogin={() => navigate('/login', { state: { from: `/p/${openPlate.id}` } })}
             />
           ) : null}
         </Modal>
@@ -662,7 +734,10 @@ function AppRouterInner({
         {reportTarget ? (
           <ReportModal
             open={Boolean(reportTarget)}
-            target={{ kind: reportTarget.type, label: reportTarget.label }}
+            target={{
+              kind: reportTarget.type === 'review' ? 'review' : reportTarget.type,
+              label: reportTarget.label,
+            }}
             onClose={() => setReportTarget(null)}
             onSubmit={(input) => {
               reports.file({
@@ -740,7 +815,10 @@ function CookProfileRoute({
   onOpenPlate,
   onReservePlate,
   currentUserId,
+  userCookVerification,
   onCookReply,
+  onUnblock,
+  onReportReview,
 }: {
   plates: Plate[]
   reviewsList: import('../types').Review[]
@@ -752,7 +830,10 @@ function CookProfileRoute({
   onOpenPlate: (id: string) => void
   onReservePlate: (id: string) => void
   currentUserId?: string
+  userCookVerification?: import('../types').User['cookVerification']
   onCookReply?: (reviewId: string, body: string) => void
+  onUnblock?: (cookId: string) => void
+  onReportReview?: (reviewId: string, label: string) => void
 }) {
   const params = useParams()
   const cookId = params.cookId || ''
@@ -770,7 +851,10 @@ function CookProfileRoute({
       onBlock={() => onBlock(cookId, cookName)}
       isBlocked={isBlocked(cookId)}
       currentUserId={currentUserId}
+      userCookVerification={currentUserId === cookId ? userCookVerification : undefined}
       onCookReply={onCookReply}
+      onUnblock={onUnblock ? () => onUnblock(cookId) : undefined}
+      onReportReview={onReportReview}
     />
   )
 }

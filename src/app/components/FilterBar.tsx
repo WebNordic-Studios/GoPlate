@@ -1,4 +1,6 @@
-import { ArrowDownNarrowWide, MapPin, X } from 'lucide-react'
+import { ArrowDownNarrowWide, Clock, MapPin, Sparkles, X } from 'lucide-react'
+import type { DiscoveryFilter } from '../../lib/plateFilters'
+import { DISCOVERY_FILTER_LABEL } from '../../lib/plateFilters'
 import { useEffect, useRef, useState } from 'react'
 import type { Cuisine, DietaryTag } from '../../types'
 import { attachHorizontalWheelScroll } from '../../lib/horizontalWheelScroll'
@@ -17,6 +19,8 @@ export function FilterBar({
   onClearAll,
   onUseMyLocation,
   locating,
+  discoveryFilter = 'all',
+  onChangeDiscoveryFilter,
 }: {
   sort: SortMode
   onChangeSort: (m: SortMode) => void
@@ -27,11 +31,13 @@ export function FilterBar({
   onClearAll: () => void
   onUseMyLocation?: () => void
   locating?: boolean
+  discoveryFilter?: DiscoveryFilter
+  onChangeDiscoveryFilter?: (f: DiscoveryFilter) => void
 }) {
   const [openSort, setOpenSort] = useState(false)
   const dietaryScrollRef = useRef<HTMLDivElement>(null)
   const cuisineScrollRef = useRef<HTMLDivElement>(null)
-  const activeCount = dietary.size + cuisines.size
+  const activeCount = dietary.size + cuisines.size + (discoveryFilter !== 'all' ? 1 : 0)
 
   useEffect(() => {
     const cleanups: (() => void)[] = []
@@ -104,6 +110,33 @@ export function FilterBar({
         ) : null}
       </div>
 
+      {onChangeDiscoveryFilter ? (
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-gp-charcoal/50">Discovery</div>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {(['all', 'just-listed', 'pickup-soon'] as DiscoveryFilter[]).map((f) => {
+              const active = discoveryFilter === f
+              const Icon = f === 'just-listed' ? Sparkles : f === 'pickup-soon' ? Clock : null
+              return (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => onChangeDiscoveryFilter(f)}
+                  className={`gp-focus inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition ${
+                    active
+                      ? 'bg-gp-primary text-white ring-gp-primary/60'
+                      : 'bg-gp-surface text-gp-charcoal/75 ring-black/10 hover:bg-black/5'
+                  }`}
+                >
+                  {Icon ? <Icon size={12} aria-hidden /> : null}
+                  {DISCOVERY_FILTER_LABEL[f]}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      ) : null}
+
       <div>
         <div className="text-xs font-semibold uppercase tracking-wide text-gp-charcoal/50">Dietary</div>
         <div
@@ -158,4 +191,3 @@ export function FilterBar({
     </div>
   )
 }
-

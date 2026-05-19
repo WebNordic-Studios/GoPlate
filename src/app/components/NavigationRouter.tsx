@@ -1,4 +1,4 @@
-import { Cog, CreditCard, Home, MapPin, Plus, Search, ShoppingBag, Store, User, type LucideIcon } from 'lucide-react'
+import { Cog, CreditCard, Heart, Home, MapPin, Plus, Search, ShoppingBag, Store, User, type LucideIcon } from 'lucide-react'
 import { GoPlateLogoMark } from '../../ui/GoPlateLogo'
 import { NavLink, useNavigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
@@ -96,6 +96,7 @@ export function NavigationShellRouter({ rightSlot, profilePath = '/me', hideBott
 
               <nav className="flex flex-wrap items-center gap-2">
                 <TopNavLink to="/market">Find Food</TopNavLink>
+                <TopNavLink to="/favorites">Favorites</TopNavLink>
                 <TopNavLink to="/orders">Orders</TopNavLink>
                 <TopNavLink to="/map">Map</TopNavLink>
                 <TopNavLink to="/cook">Create</TopNavLink>
@@ -133,6 +134,7 @@ export function NavigationShellRouter({ rightSlot, profilePath = '/me', hideBott
           <div className="md:hidden">
             <div className="grid grid-cols-3 gap-2 pb-3 pt-0.5">
               <MobileQuickLink to={profilePath} label="Profile" icon={User} tint="secondary" />
+              <MobileQuickLink to="/favorites" label="Saved" icon={Heart} tint="secondary" />
               <MobileQuickLink to="/account" label="Account" icon={CreditCard} tint="primary" />
               <MobileQuickLink to="/cook" label="Create" icon={Plus} tint="primary" />
               <MobileQuickLink to="/settings" label="Settings" icon={Cog} tint="neutral" ariaLabel="Settings" />

@@ -1,4 +1,4 @@
-import { Star, Trash2 } from 'lucide-react'
+import { Flag, Star, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import type { Review } from '../../types'
 import { timeAgo } from '../../lib/format'
@@ -13,6 +13,7 @@ export function ReviewCard({
   onCookReply,
   canDelete,
   onDelete,
+  onReport,
 }: {
   review: Review
   cookName: string
@@ -22,6 +23,7 @@ export function ReviewCard({
   onCookReply?: (reviewId: string, body: string) => void
   canDelete?: boolean
   onDelete?: (reviewId: string) => void
+  onReport?: () => void
 }) {
   const [replyOpen, setReplyOpen] = useState(false)
   const [replyBody, setReplyBody] = useState('')
@@ -61,6 +63,17 @@ export function ReviewCard({
             <div className="flex shrink-0 items-center gap-2">
               <StarRow rating={review.rating} />
               <span className="text-[11px] text-gp-charcoal/45">{timeAgo(review.createdAtIso)}</span>
+              {onReport ? (
+                <button
+                  type="button"
+                  onClick={onReport}
+                  className="gp-focus rounded-lg p-1 text-gp-charcoal/40 hover:bg-amber-50 hover:text-amber-700"
+                  aria-label="Report review"
+                  title="Report review"
+                >
+                  <Flag size={14} />
+                </button>
+              ) : null}
               {canDelete && onDelete ? (
                 <button
                   type="button"

@@ -1,14 +1,22 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, ChefHat, Inbox, LogIn, MessageCircle, Package, Send, ShoppingBag, Timer, X } from 'lucide-react'
+import { Check, Clock, Inbox, KeyRound, LogIn, MessageCircle, Package, ShoppingBag, Timer, X } from 'lucide-react'
+import { RUNNING_LATE_TEMPLATE } from '../../lib/orderMessages'
 import type { Message, Order, OrderStatus, Plate, User } from '../../types'
 import { Button } from '../../ui/Button'
 import { Modal } from '../../ui/Modal'
 import { EmptyState } from '../../ui/EmptyState'
 import { useSettings } from '../../state/settings'
-import { formatMoney, timeAgo } from '../../lib/format'
+import { formatMoney } from '../../lib/format'
 import { PastOrdersSection } from '../components/PastOrderCards'
-import { isIncomingOrder, isOrderFinished, isPlacedOrder } from '../lib/orderRoles'
+import {
+  isIncomingOrder,
+  isOrderFinished,
+  isPlacedOrder,
+  messagePeerLabel,
+  messageRoleForOrder,
+} from '../lib/orderRoles'
+import { OrderConversation } from '../components/OrderConversation'
 
 const STATUS_FLOW: OrderStatus[] = ['Reserved', 'Cooking', 'Ready', 'Picked up']
 
@@ -41,7 +49,7 @@ export function OrdersPage({
   orders: Order[]
   plates: Map<string, Plate>
   messagesByOrderId: Map<string, Message[]>
-  onSendMessage: (orderId: string, from: 'buyer' | 'cook', body: string) => void
+  onSendMessage: (orderId: string, body: string) => void
   onUpdateStatus: (orderId: string, status: OrderStatus) => void
   onCancel: (orderId: string) => void
   onLeaveReview: (orderId: string) => void
@@ -69,8 +77,6 @@ export function OrdersPage({
   const activeOrder = openMessagesFor ? orders.find((o) => o.id === openMessagesFor) ?? null : null
   const thread = activeOrder ? messagesByOrderId.get(activeOrder.id) ?? [] : []
   const activeOrderPlate = activeOrder ? plates.get(activeOrder.plateId) : undefined
-  const activeAsIncoming = Boolean(user && activeOrder && isIncomingOrder(activeOrder, activeOrderPlate, user.id))
-
   if (!user) {
     return (
       <div className="gp-container pb-28 pt-6 md:pb-10">
@@ -134,6 +140,7 @@ export function OrdersPage({
             onUpdateStatus={onUpdateStatus}
             onCancel={onCancel}
             onLeaveReview={onLeaveReview}
+            onSendMessage={onSendMessage}
           />
         ) : (
           <EmptyState
@@ -154,13 +161,22 @@ export function OrdersPage({
         onClose={() => setOpenMessagesFor(null)}
         sheetOnMobile
       >
-        {activeOrder ? (
-          <MessagesPane
+        {activeOrder && user ? (
+          <OrderConversation
             key={activeOrder.id}
-            order={activeOrder}
             thread={thread}
-            defaultRole={activeAsIncoming ? 'cook' : 'buyer'}
-            onSend={(from, body) => onSendMessage(activeOrder.id, from, body)}
+            viewerRole={messageRoleForOrder(activeOrder, user.id, activeOrderPlate)}
+            peerLabel={messagePeerLabel(
+              messageRoleForOrder(activeOrder, user.id, activeOrderPlate),
+              activeOrderPlate,
+            )}
+            onSend={(body) => onSendMessage(activeOrder.id, body)}
+            draftInputId={`orders-chat-${activeOrder.id}`}
+            footer={
+              <p className="text-center text-xs text-gp-charcoal/60">
+                Status: <span className="font-semibold text-gp-charcoal">{activeOrder.status}</span>
+              </p>
+            }
           />
         ) : null}
       </Modal>
@@ -232,6 +248,7 @@ function OrderListSections({
   onUpdateStatus,
   onCancel,
   onLeaveReview,
+  onSendMessage,
 }: {
   inProgress: Order[]
   finished: Order[]
@@ -243,6 +260,7 @@ function OrderListSections({
   onUpdateStatus: (orderId: string, status: OrderStatus) => void
   onCancel: (orderId: string) => void
   onLeaveReview: (orderId: string) => void
+  onSendMessage: (orderId: string, body: string) => void
 }) {
   return (
     <div className="mt-6 space-y-8">
@@ -268,6 +286,7 @@ function OrderListSections({
                 onOpenMessages={() => onOpenMessages(o.id)}
                 onUpdateStatus={onUpdateStatus}
                 onCancel={onCancel}
+                onSendRunningLate={(orderId) => onSendMessage(orderId, RUNNING_LATE_TEMPLATE)}
               />
             ))}
           </div>
@@ -301,6 +320,7 @@ function OrderCard({
   onOpenMessages,
   onUpdateStatus,
   onCancel,
+  onSendRunningLate,
 }: {
   order: Order
   plate: Plate | undefined
@@ -310,12 +330,28 @@ function OrderCard({
   onOpenMessages: () => void
   onUpdateStatus: (orderId: string, status: OrderStatus) => void
   onCancel: (orderId: string) => void
+  onSendRunningLate?: (orderId: string) => void
 }) {
   const cancelled = o.status === 'Cancelled'
   const isIncoming = variant === 'incoming'
   const cookName = plate?.cook.name
+  const showHandoffBanner = !isIncoming && !cancelled && o.handoffCode && (o.status === 'Ready' || o.status === 'Cooking')
   return (
     <article className="overflow-hidden rounded-[2rem] bg-gp-surface/80 shadow-natural ring-1 ring-black/5">
+      {showHandoffBanner ? (
+        <div className="border-b border-gp-primary/20 bg-gradient-to-r from-gp-primary/15 to-gp-secondary/10 px-4 py-4 sm:px-5 md:hidden">
+          <div className="flex items-center gap-3">
+            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white/80 ring-1 ring-gp-primary/25">
+              <KeyRound size={22} className="text-gp-primary" aria-hidden />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] font-bold uppercase tracking-widest text-gp-primary">Pickup code</div>
+              <div className="font-mono text-3xl font-bold tracking-[0.35em] text-gp-charcoal">{o.handoffCode}</div>
+              <p className="mt-0.5 text-xs text-gp-charcoal/65">Show this to the cook at pickup</p>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <div className="flex flex-wrap items-start justify-between gap-3 p-4 sm:p-5">
         <div className="flex flex-wrap items-start gap-3">
           {plate ? (
@@ -392,8 +428,29 @@ function OrderCard({
               </Button>
             ) : null}
             {!isIncoming ? (
-              <Button variant="ghost" onClick={() => onCancel(o.id)} leftIcon={<X size={14} />}>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      `Cancel your reservation for "${o.plateName}"? The cook will be notified in this prototype.`,
+                    )
+                  ) {
+                    onCancel(o.id)
+                  }
+                }}
+                leftIcon={<X size={14} />}
+              >
                 Cancel
+              </Button>
+            ) : null}
+            {isIncoming && onSendRunningLate ? (
+              <Button
+                variant="ghost"
+                onClick={() => onSendRunningLate(o.id)}
+                leftIcon={<Clock size={14} />}
+              >
+                Send running late
               </Button>
             ) : null}
           </>
@@ -410,101 +467,6 @@ function OrderCard({
 
       </div>
     </article>
-  )
-}
-
-function MessagesPane({
-  order,
-  thread,
-  defaultRole,
-  onSend,
-}: {
-  order: Order
-  thread: Message[]
-  defaultRole: 'buyer' | 'cook'
-  onSend: (from: 'buyer' | 'cook', body: string) => void
-}) {
-  const [body, setBody] = useState('')
-  const [from, setFrom] = useState<'buyer' | 'cook'>(defaultRole)
-
-  function submit() {
-    if (!body.trim()) return
-    onSend(from, body.trim())
-    setBody('')
-  }
-
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex items-center justify-between gap-2 border-b border-black/5 px-5 py-3">
-        <div className="text-xs text-gp-charcoal/65">
-          Status: <span className="font-semibold text-gp-charcoal">{order.status}</span>
-        </div>
-        <div className="flex items-center gap-1 rounded-full bg-gp-bg p-1 text-xs font-semibold ring-1 ring-black/5">
-          {(['buyer', 'cook'] as const).map((r) => (
-            <button
-              key={r}
-              type="button"
-              onClick={() => setFrom(r)}
-              className={`gp-focus rounded-full px-3 py-1 transition ${
-                from === r ? 'bg-gp-surface text-gp-charcoal shadow-sm' : 'text-gp-charcoal/60'
-              }`}
-            >
-              {r === 'buyer' ? 'Buyer' : 'Cook'}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex-1 space-y-2 overflow-y-auto p-5">
-        {thread.length === 0 ? (
-          <div className="grid h-full place-items-center">
-            <div className="text-center text-sm text-gp-charcoal/60">
-              <ChefHat className="mx-auto h-8 w-8 text-gp-charcoal/30" aria-hidden />
-              <p className="mt-2">Start a thread about pickup details, allergens, or substitutions.</p>
-            </div>
-          </div>
-        ) : (
-          thread.map((m) => {
-            const own = m.from === from
-            return (
-              <div key={m.id} className={`flex ${own ? 'justify-end' : 'justify-start'}`}>
-                <div
-                  className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ring-1 ${
-                    own
-                      ? 'bg-gp-primary text-white ring-gp-primary/30'
-                      : 'bg-gp-surface text-gp-charcoal ring-black/10'
-                  }`}
-                >
-                  <div className="text-[10px] font-semibold uppercase opacity-70">{m.from}</div>
-                  <div className="whitespace-pre-wrap">{m.body}</div>
-                  <div className="mt-1 text-[10px] opacity-70">{timeAgo(m.createdAtIso)}</div>
-                </div>
-              </div>
-            )
-          })
-        )}
-      </div>
-
-      <div className="shrink-0 border-t border-black/5 bg-gp-bg p-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <form
-          className="flex items-center gap-2"
-          onSubmit={(e) => {
-            e.preventDefault()
-            submit()
-          }}
-        >
-          <input
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            placeholder={`Message as ${from}…`}
-            className="gp-focus min-w-0 flex-1 rounded-2xl bg-gp-surface px-3 py-2.5 text-sm ring-1 ring-black/5"
-          />
-          <Button variant="primary" type="submit" leftIcon={<Send size={14} />}>
-            Send
-          </Button>
-        </form>
-      </div>
-    </div>
   )
 }
 
@@ -565,3 +527,5 @@ function statusStyle(s: OrderStatus): string {
       return 'bg-black/5 text-gp-charcoal/70 ring-black/10'
   }
 }
+
+

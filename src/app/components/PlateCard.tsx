@@ -1,4 +1,6 @@
 import { BadgeCheck, Clock, Flame, MapPin, Sparkles, Star } from 'lucide-react'
+import { isJustListed, isPickupSoon } from '../../lib/plateFilters'
+import { WaitlistButton } from './WaitlistButton'
 import { motion, useReducedMotion } from 'framer-motion'
 import type { Plate } from '../../types'
 import { formatDistanceBadge, formatMoney } from '../../lib/format'
@@ -7,22 +9,26 @@ import { useReviewsContext } from '../../state/reviewsContext'
 import { Button } from '../../ui/Button'
 import { DietaryBadge } from '../../ui/Badges'
 
-function isJustListed(plate: Plate): boolean {
-  if (!plate.createdAtIso) return false
-  const ms = Date.now() - new Date(plate.createdAtIso).getTime()
-  return ms >= 0 && ms < 1000 * 60 * 60 * 36
-}
-
 export function PlateCard({
   plate,
   onOpen,
   onReserve,
   onOpenCook,
+  waitlistJoined,
+  onJoinWaitlist,
+  onLeaveWaitlist,
+  waitlistRequiresLogin,
+  onWaitlistLogin,
 }: {
   plate: Plate
   onOpen: () => void
   onReserve: () => void
   onOpenCook?: () => void
+  waitlistJoined?: boolean
+  onJoinWaitlist?: () => void
+  onLeaveWaitlist?: () => void
+  waitlistRequiresLogin?: boolean
+  onWaitlistLogin?: () => void
 }) {
   const { settings } = useSettings()
   const { plateStats } = useReviewsContext()
@@ -33,6 +39,7 @@ export function PlateCard({
   const soldOut = plate.portionsAvailable <= 0
   const almostSoldOut = !soldOut && plate.portionsAvailable > 0 && plate.portionsAvailable <= 2
   const justListed = isJustListed(plate)
+  const pickupSoon = isPickupSoon(plate)
   const compact = settings.compactDensity
   const imgH = compact ? 'h-40 sm:h-44' : 'h-48 sm:h-52'
   const pad = compact ? 'p-3' : 'p-4'
@@ -81,6 +88,11 @@ export function PlateCard({
             {justListed && !soldOut ? (
               <div className="inline-flex items-center gap-1 rounded-2xl bg-gp-secondary/90 px-3 py-1 text-xs font-semibold text-white shadow-natural">
                 <Sparkles size={12} aria-hidden /> Just listed
+              </div>
+            ) : null}
+            {pickupSoon && !soldOut && !justListed ? (
+              <div className="inline-flex items-center gap-1 rounded-2xl bg-gp-primary/90 px-3 py-1 text-xs font-semibold text-white shadow-natural">
+                <Clock size={12} aria-hidden /> Pickup soon
               </div>
             ) : null}
           </div>
@@ -182,9 +194,19 @@ export function PlateCard({
               {soldOut ? 'No portions left' : `${plate.portionsAvailable} portions left`}
             </div>
             <div onClick={(e) => e.stopPropagation()}>
-              <Button variant="primary" disabled={soldOut} onClick={onReserve} className={compact ? 'px-3 py-2 text-xs' : 'px-4 py-2'}>
-                Reserve
-              </Button>
+              {soldOut && onJoinWaitlist ? (
+                <WaitlistButton
+                  joined={Boolean(waitlistJoined)}
+                  onJoin={onJoinWaitlist}
+                  onLeave={onLeaveWaitlist ?? (() => {})}
+                  requiresLogin={waitlistRequiresLogin}
+                  onLogin={onWaitlistLogin}
+                />
+              ) : (
+                <Button variant="primary" disabled={soldOut} onClick={onReserve} className={compact ? 'px-3 py-2 text-xs' : 'px-4 py-2'}>
+                  Reserve
+                </Button>
+              )}
             </div>
           </div>
         </div>

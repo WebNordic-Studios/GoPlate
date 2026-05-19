@@ -17,6 +17,8 @@ import { useReviewsContext } from '../../state/reviewsContext'
 import { Button } from '../../ui/Button'
 import { ReviewsSection } from './ReviewsSection'
 import { AllergenChip, DietaryBadge, SpiceMeter, VerifiedBadge } from '../../ui/Badges'
+import { KitchenDisclaimer } from '../../ui/KitchenDisclaimer'
+import { WaitlistButton } from './WaitlistButton'
 
 export function PlateDetail({
   plate,
@@ -29,6 +31,11 @@ export function PlateDetail({
   onShare,
   onReport,
   onOpenCook,
+  waitlistJoined,
+  onJoinWaitlist,
+  onLeaveWaitlist,
+  waitlistRequiresLogin,
+  onWaitlistLogin,
 }: {
   plate: Plate
   onReserve: () => void
@@ -40,6 +47,11 @@ export function PlateDetail({
   onShare?: () => void
   onReport?: () => void
   onOpenCook?: () => void
+  waitlistJoined?: boolean
+  onJoinWaitlist?: () => void
+  onLeaveWaitlist?: () => void
+  waitlistRequiresLogin?: boolean
+  onWaitlistLogin?: () => void
 }) {
   const { settings } = useSettings()
   const { plateStats } = useReviewsContext()
@@ -260,11 +272,25 @@ export function PlateDetail({
               <div className="text-xs font-semibold text-gp-charcoal/60">
                 {soldOut ? 'Sold out' : `${plate.portionsAvailable} portions remaining`}
               </div>
-              <Button variant="primary" disabled={soldOut} onClick={onReserve}>
-                Reserve & Checkout
-              </Button>
+              {soldOut && onJoinWaitlist ? (
+                <WaitlistButton
+                  joined={Boolean(waitlistJoined)}
+                  onJoin={onJoinWaitlist}
+                  onLeave={onLeaveWaitlist ?? (() => {})}
+                  requiresLogin={waitlistRequiresLogin}
+                  onLogin={onWaitlistLogin}
+                />
+              ) : (
+                <Button variant="primary" disabled={soldOut} onClick={onReserve}>
+                  Reserve & Checkout
+                </Button>
+              )}
             </div>
           </div>
+        </div>
+
+        <div className="mt-5">
+          <KitchenDisclaimer compact />
         </div>
 
         <div className="mt-6">

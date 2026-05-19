@@ -16,3 +16,18 @@ export function isPlacedOrder(order: Order, plate: Plate | undefined, userId: st
 export function isOrderFinished(status: Order['status']) {
   return status === 'Picked up' || status === 'Cancelled'
 }
+
+export function messageRoleForOrder(
+  order: Order,
+  userId: string | undefined,
+  plate: Plate | undefined,
+): 'buyer' | 'cook' {
+  if (!userId) return 'buyer'
+  if (order.buyerId === userId) return 'buyer'
+  if (isIncomingOrder(order, plate, userId)) return 'cook'
+  return 'buyer'
+}
+
+export function messagePeerLabel(viewerRole: 'buyer' | 'cook', plate: Plate | undefined) {
+  return viewerRole === 'buyer' ? (plate?.cook.name ?? 'Cook') : 'Buyer'
+}

@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '../../ui/Button'
 import { GoPlateLogoMark } from '../../ui/GoPlateLogo'
+import { KitchenDisclaimer } from '../../ui/KitchenDisclaimer'
 
 export function SignUpPage({
   onSignUp,
@@ -12,6 +13,8 @@ export function SignUpPage({
     email: string
     password: string
     displayName: string
+    ageConfirmed: boolean
+    termsAccepted: boolean
   }) => { ok: boolean; error?: string }
   onSocial?: (provider: 'google' | 'apple') => boolean
 }) {
@@ -19,6 +22,8 @@ export function SignUpPage({
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [displayName, setDisplayName] = useState('')
+  const [ageConfirmed, setAgeConfirmed] = useState(false)
+  const [termsAccepted, setTermsAccepted] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   function submit() {
@@ -27,7 +32,15 @@ export function SignUpPage({
       setError('Passwords do not match.')
       return
     }
-    const result = onSignUp({ email, password, displayName })
+    if (!ageConfirmed) {
+      setError('You must confirm you are at least 18 years old.')
+      return
+    }
+    if (!termsAccepted) {
+      setError('Please accept the Terms of Service and liability notice.')
+      return
+    }
+    const result = onSignUp({ email, password, displayName, ageConfirmed, termsAccepted })
     if (!result.ok) setError(result.error ?? 'Could not create account.')
   }
 
@@ -36,16 +49,12 @@ export function SignUpPage({
       <div className="mx-auto max-w-xl rounded-[2rem] bg-gp-surface/80 p-6 shadow-natural ring-1 ring-black/5">
         <div className="flex flex-col items-center text-center">
           <div className="flex min-h-[11rem] items-center justify-center py-2 sm:min-h-[11.75rem]">
-            <GoPlateLogoMark
-              decorative
-              size="2xl"
-              className="drop-shadow-[0_2px_8px_rgb(0_0_0_/0.08)]"
-            />
+            <GoPlateLogoMark decorative size="2xl" className="drop-shadow-[0_2px_8px_rgb(0_0_0_/0.08)]" />
           </div>
           <div className="mt-4 font-display text-2xl font-semibold">Create your account</div>
-          <div className="mt-1 max-w-md text-sm text-gp-charcoal/65">
+          <p className="mt-1 max-w-md text-sm text-gp-charcoal/65">
             Join GoPlate to follow cooks, reserve dishes, and list your own plates.
-          </div>
+          </p>
         </div>
 
         {onSocial ? (
@@ -117,6 +126,37 @@ export function SignUpPage({
             </label>
           </div>
 
+          <div className="space-y-3 rounded-2xl bg-gp-bg p-4 ring-1 ring-black/5">
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                checked={ageConfirmed}
+                onChange={(e) => setAgeConfirmed(e.target.checked)}
+                className="gp-focus mt-1 h-4 w-4 rounded border-black/20"
+              />
+              <span className="text-sm text-gp-charcoal/80">
+                I confirm I am <span className="font-semibold">18 years or older</span>.
+              </span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                checked={termsAccepted}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+                className="gp-focus mt-1 h-4 w-4 rounded border-black/20"
+              />
+              <span className="text-sm text-gp-charcoal/80">
+                I agree to the{' '}
+                <Link to="/" className="font-semibold text-gp-secondary underline">
+                  Terms of Service
+                </Link>{' '}
+                and understand home-cooked meals are not from inspected commercial kitchens.
+              </span>
+            </label>
+          </div>
+
+          <KitchenDisclaimer compact />
+
           {error ? (
             <div className="rounded-2xl bg-gp-primary/10 p-3 text-sm font-semibold text-gp-primary">{error}</div>
           ) : null}
@@ -125,12 +165,12 @@ export function SignUpPage({
             Create account
           </Button>
 
-          <div className="text-center text-sm text-gp-charcoal/65">
+          <p className="text-center text-sm text-gp-charcoal/65">
             Already have an account?{' '}
             <Link to="/login" className="font-semibold text-gp-secondary underline decoration-gp-secondary/30">
               Log in
             </Link>
-          </div>
+          </p>
         </div>
       </div>
     </div>

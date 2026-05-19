@@ -200,8 +200,15 @@ export function CookDashboardPage({
                     </td>
                     <td className="px-4 py-3 text-right">
                       {plate.isDraft ? (
-                        <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800 ring-1 ring-amber-200">
-                          {plate.scheduledPublishAtIso ? 'Scheduled' : 'Draft'}
+                        <span className="inline-flex flex-col items-end gap-0.5">
+                          <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800 ring-1 ring-amber-200">
+                            {plate.scheduledPublishAtIso ? 'Scheduled' : 'Draft'}
+                          </span>
+                          {plate.scheduledPublishAtIso ? (
+                            <span className="text-[10px] font-medium text-amber-900/80">
+                              Goes live {new Date(plate.scheduledPublishAtIso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                            </span>
+                          ) : null}
                         </span>
                       ) : plate.portionsAvailable <= 0 ? (
                         <span className="inline-flex items-center rounded-full bg-black/10 px-2 py-0.5 text-[10px] font-semibold text-gp-charcoal/70">

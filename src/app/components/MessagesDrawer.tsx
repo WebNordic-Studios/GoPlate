@@ -1,11 +1,13 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { ChevronLeft, Edit3, MessageCircle, Search, SendHorizontal, X } from 'lucide-react'
+import { ChevronLeft, Edit3, MessageCircle, Search, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router-dom'
 import type { Message, Order, Plate, User } from '../../types'
-import { formatMoney, timeAgo } from '../../lib/format'
+import { formatMoney } from '../../lib/format'
 import { buildSortedMessageThreads } from '../lib/messageThreads'
+import { messagePeerLabel, messageRoleForOrder } from '../lib/orderRoles'
+import { OrderConversation } from './OrderConversation'
 import { useSettings } from '../../state/settings'
 
 type Props = {
@@ -34,36 +36,27 @@ function shortRelative(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
-/** Active order thread — IG-style bubbles, send as buyer */
+/** Single conversation thread for an order (buyer + cook messages chronologically). */
 function ActiveThreadPane({
   order,
   plate,
   thread,
+  userId,
   onBack,
   onSend,
 }: {
   order: Order
   plate: Plate | undefined
   thread: Message[]
+  userId: string
   onBack: () => void
   onSend: (body: string) => void
 }) {
-  const [draft, setDraft] = useState('')
-  const bottomRef = useRef<HTMLDivElement>(null)
   const { settings } = useSettings()
-  const sorted = useMemo(() => [...thread].sort((a, b) => a.createdAtIso.localeCompare(b.createdAtIso)), [thread])
-  const cookName = plate?.cook.name ?? 'Cook'
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: settings.reduceMotion ? 'auto' : 'smooth', block: 'end' })
-  }, [sorted.length, settings.reduceMotion])
-
-  function submit() {
-    const t = draft.trim()
-    if (!t) return
-    onSend(t)
-    setDraft('')
-  }
+  const viewerRole = messageRoleForOrder(order, userId, plate)
+  const peerLabel = messagePeerLabel(viewerRole, plate)
+  const headerTitle = viewerRole === 'buyer' ? peerLabel : order.plateName
+  const headerSubtitle = viewerRole === 'buyer' ? order.plateName : peerLabel
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -77,82 +70,26 @@ function ActiveThreadPane({
           <ChevronLeft size={22} strokeWidth={1.75} aria-hidden />
         </button>
         <div className="flex min-w-0 flex-1 flex-col items-center px-1 text-center">
-          <span className="truncate text-[15px] font-bold text-gp-charcoal">{cookName}</span>
-          <span className="truncate text-[12px] text-gp-charcoal/55">{order.plateName}</span>
+          <span className="truncate text-[15px] font-bold text-gp-charcoal">{headerTitle}</span>
+          <span className="truncate text-[12px] text-gp-charcoal/55">{headerSubtitle}</span>
         </div>
         <div className="h-10 w-10 shrink-0" aria-hidden />
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3 pb-4">
-        {!sorted.length ? (
-          <div className="mx-auto mt-16 max-w-[16rem] text-center">
-            <p className="text-sm font-semibold text-gp-charcoal">No messages yet</p>
-            <p className="mt-2 text-[13px] leading-relaxed text-gp-charcoal/55">
-              Say hi — confirm pickup time, allergens, or door-drop details.
-            </p>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-2 pb-4">
-            {sorted.map((m) => {
-              const mine = m.from === 'buyer'
-              return (
-                <div key={m.id} className={`flex w-full ${mine ? 'justify-end' : 'justify-start'}`}>
-                  <div
-                    className={
-                      mine
-                        ? 'max-w-[88%] rounded-[1.35rem] rounded-br-md bg-gp-primary px-3.5 py-2 shadow-sm'
-                        : 'max-w-[88%] rounded-[1.35rem] rounded-bl-md bg-gp-surface/90 px-3.5 py-2 shadow-sm ring-1 ring-black/8 dark:bg-gp-surface/80 dark:ring-white/10'
-                    }
-                  >
-                    <p className={`whitespace-pre-wrap text-[13px] leading-snug ${mine ? 'text-white' : 'text-gp-charcoal'}`}>
-                      {m.body}
-                    </p>
-                    <p
-                      className={`mt-1 text-[10px] font-medium tabular-nums ${mine ? 'text-white/70' : 'text-gp-charcoal/45'}`}
-                    >
-                      {timeAgo(m.createdAtIso)}
-                    </p>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-        <div ref={bottomRef} />
-      </div>
-
-      <div className="relative z-10 shrink-0 border-t border-black/10 bg-gp-bg p-3 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-12px_rgb(0_0_0/0.12)] dark:border-white/10">
-        <form
-          className="flex items-end gap-2"
-          onSubmit={(e) => {
-            e.preventDefault()
-            submit()
-          }}
-        >
-          <label className="sr-only" htmlFor={`dm-draft-${order.id}`}>
-            Message {cookName}
-          </label>
-          <input
-            id={`dm-draft-${order.id}`}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder="Message…"
-            className="gp-focus max-h-32 min-h-[2.75rem] min-w-0 flex-1 resize-none rounded-[1.25rem] border border-transparent bg-gp-surface/90 px-4 py-3 text-[13px] text-gp-charcoal shadow-inner ring-1 ring-black/[0.06] placeholder:text-gp-charcoal/40 dark:bg-gp-surface/75 dark:ring-white/10"
-          />
-          <button
-            type="submit"
-            disabled={!draft.trim()}
-            className="gp-focus mb-px grid h-11 w-11 shrink-0 place-items-center rounded-full bg-gp-primary text-white shadow-sm transition hover:opacity-95 disabled:pointer-events-none disabled:opacity-35"
-            aria-label="Send"
-          >
-            <SendHorizontal size={20} aria-hidden />
-          </button>
-        </form>
-        <p className="mt-2 text-center text-[10px] text-gp-charcoal/45">
-          Order · {formatMoney(order.priceCents, settings.currency, settings.locale)} ·{' '}
-          <span className="font-semibold text-gp-charcoal/60">{order.status}</span>
-        </p>
-      </div>
+      <OrderConversation
+        thread={thread}
+        viewerRole={viewerRole}
+        peerLabel={peerLabel}
+        onSend={onSend}
+        compact
+        draftInputId={`dm-draft-${order.id}`}
+        footer={
+          <p className="text-center text-[10px] text-gp-charcoal/45">
+            Order · {formatMoney(order.priceCents, settings.currency, settings.locale)} ·{' '}
+            <span className="font-semibold text-gp-charcoal/60">{order.status}</span>
+          </p>
+        }
+      />
     </div>
   )
 }
@@ -306,6 +243,7 @@ export function MessagesDrawer({
                 order={activeOrder}
                 plate={activePlate}
                 thread={messagesByOrderId.get(activeOrder.id) ?? []}
+                userId={user.id}
                 onBack={() => setActiveOrderId(null)}
                 onSend={(body) => onSendMessage(activeOrder.id, body)}
               />
@@ -386,14 +324,12 @@ export function MessagesDrawer({
                     >
                       {threadsFiltered.map(({ order, plate, msgs }) => {
                         const thumb = plate?.cook.avatarUrl ?? plate?.images?.[0]
-                        const primary = plate?.cook.name ?? order.plateName
-                        const subtitle = order.plateName === primary ? '' : order.plateName
+                        const viewerRole = messageRoleForOrder(order, user!.id, plate)
+                        const peerLabel = messagePeerLabel(viewerRole, plate)
+                        const primary = viewerRole === 'buyer' ? peerLabel : order.plateName
+                        const subtitle = viewerRole === 'buyer' ? order.plateName : peerLabel
                         const sortedMsgs = [...msgs].sort((a, b) => a.createdAtIso.localeCompare(b.createdAtIso))
                         const lastMsg = sortedMsgs[sortedMsgs.length - 1] ?? null
-                        const lastCookMsg =
-                          [...sortedMsgs].filter((m) => m.from === 'cook').sort((a, b) => a.createdAtIso.localeCompare(b.createdAtIso)).at(-1) ??
-                          null
-                        const showInboundSnippet = Boolean(lastCookMsg && lastMsg?.from === 'buyer')
 
                         return (
                           <li key={order.id}>
@@ -423,36 +359,25 @@ export function MessagesDrawer({
                                     {lastMsg ? shortRelative(lastMsg.createdAtIso) : shortRelative(order.createdAtIso)}
                                   </span>
                                 </div>
-                                {subtitle ? <p className="truncate text-[13px] text-gp-charcoal/50">{subtitle}</p> : null}
-
-                                {showInboundSnippet && lastCookMsg ? (
-                                  <p className="mt-1 line-clamp-2 text-[13px] leading-snug text-gp-charcoal/70">
-                                    <span className="font-semibold text-gp-secondary">Cook: </span>
-                                    <span>{lastCookMsg.body}</span>
-                                  </p>
+                                {subtitle && subtitle !== primary ? (
+                                  <p className="truncate text-[13px] text-gp-charcoal/50">{subtitle}</p>
                                 ) : null}
 
-                                <p
-                                  className={`line-clamp-2 text-[13px] text-gp-charcoal/55 ${showInboundSnippet ? 'mt-0.5' : 'mt-1'}`}
-                                >
+                                <p className="mt-1 line-clamp-2 text-[13px] leading-snug text-gp-charcoal/55">
                                   {!lastMsg ? (
                                     <span className="text-gp-charcoal/40">Tap to start the conversation</span>
-                                  ) : lastMsg.from === 'cook' ? (
-                                    <>
-                                      <span className="font-semibold text-gp-secondary">Cook: </span>
-                                      <span>{lastMsg.body}</span>
-                                    </>
-                                  ) : (
+                                  ) : lastMsg.from === viewerRole ? (
                                     <>
                                       <span className="font-semibold text-gp-charcoal/75">You: </span>
                                       <span>{lastMsg.body}</span>
                                     </>
+                                  ) : (
+                                    <>
+                                      <span className="font-semibold text-gp-secondary">{peerLabel}: </span>
+                                      <span>{lastMsg.body}</span>
+                                    </>
                                   )}
                                 </p>
-
-                                {msgs.length > 1 ? (
-                                  <p className="mt-1 text-[11px] text-gp-charcoal/40">{msgs.length} messages</p>
-                                ) : null}
                               </div>
                             </button>
                           </li>
@@ -485,3 +410,4 @@ export function MessagesDrawer({
   if (!portalReady) return null
   return createPortal(drawer, document.body)
 }
+

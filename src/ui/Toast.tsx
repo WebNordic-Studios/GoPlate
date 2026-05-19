@@ -135,3 +135,4 @@ function KindIcon({ kind }: { kind: ToastKind }) {
     return <AlertCircle size={18} className="mt-0.5 shrink-0 text-gp-primary" aria-hidden />
   return <Info size={18} className="mt-0.5 shrink-0 text-gp-charcoal/70" aria-hidden />
 }
+

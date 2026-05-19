@@ -1,11 +1,13 @@
 import { Flag, ShieldOff, Star } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import type { Plate, Review } from '../../types'
 import { PlateCard } from '../components/PlateCard'
 import { ReportModal } from '../components/ReportModal'
 import { ReviewCard } from '../components/ReviewCard'
 import { Button } from '../../ui/Button'
-import { VerifiedBadge } from '../../ui/Badges'
+import { EmptyState } from '../../ui/EmptyState'
+import { CookVerificationBadge, resolveCookVerification, type CookVerificationDisplay } from '../../ui/CookVerificationBadge'
 import { useReviewsContext } from '../../state/reviewsContext'
 
 export function CookProfilePage({
@@ -19,8 +21,11 @@ export function CookProfilePage({
   onReport,
   onBlock,
   isBlocked,
+  onUnblock,
   currentUserId,
+  userCookVerification,
   onCookReply,
+  onReportReview,
 }: {
   cookId: string
   plates: Plate[]
@@ -32,8 +37,11 @@ export function CookProfilePage({
   onReport?: (input: { reason: string; details?: string }) => void
   onBlock?: () => void
   isBlocked?: boolean
+  onUnblock?: () => void
   currentUserId?: string
+  userCookVerification?: CookVerificationDisplay
   onCookReply?: (reviewId: string, body: string) => void
+  onReportReview?: (reviewId: string, label: string) => void
 }) {
   const [reportOpen, setReportOpen] = useState(false)
   const byCook = useMemo(
@@ -42,15 +50,47 @@ export function CookProfilePage({
   )
   const cook = byCook[0]?.cook ?? plates.find((p) => p.cook.id === cookId)?.cook
 
-  if (!cook) {
+  if (isBlocked && cook) {
     return (
       <div className="gp-container pb-28 pt-6 md:pb-10">
-        <div className="rounded-2xl bg-gp-surface/70 p-6 text-sm text-gp-charcoal/70 shadow-natural ring-1 ring-black/5">
-          Cook profile not found.
-        </div>
+        <EmptyState
+          icon={<ShieldOff size={22} />}
+          title="Cook blocked"
+          description={`You blocked ${cook.name}. Their dishes are hidden from the marketplace, map, and search. You can unblock them here or in Settings.`}
+          action={
+            <div className="flex flex-wrap justify-center gap-2">
+              {onUnblock ? (
+                <Button variant="primary" onClick={onUnblock}>
+                  Unblock cook
+                </Button>
+              ) : null}
+              <Link
+                to="/settings"
+                className="gp-focus inline-flex items-center justify-center rounded-2xl px-4 py-2 text-sm font-semibold text-gp-charcoal hover:bg-black/5"
+              >
+                Blocked cooks in Settings
+              </Link>
+            </div>
+          }
+        />
       </div>
     )
   }
+
+  if (!cook) {
+    return (
+      <div className="gp-container pb-28 pt-6 md:pb-10">
+        <EmptyState title="Cook not found" description="This profile may have been removed." />
+      </div>
+    )
+  }
+
+  const verification = resolveCookVerification(
+    cookId,
+    cook.verified,
+    currentUserId,
+    userCookVerification,
+  )
 
   const { cookStats } = useReviewsContext()
   const cookReviews = reviews.filter((r) => r.cookId === cookId)
@@ -62,14 +102,6 @@ export function CookProfilePage({
 
   return (
     <div className="gp-container pb-28 pt-6 md:pb-10">
-      {isBlocked ? (
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-rose-50 p-3 ring-1 ring-rose-200">
-          <div className="flex items-center gap-2 text-sm font-semibold text-rose-700">
-            <ShieldOff size={16} /> You've blocked this cook. Their listings are still visible here but hidden across the rest of the app.
-          </div>
-        </div>
-      ) : null}
-
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex items-center gap-4">
           <img
@@ -80,9 +112,9 @@ export function CookProfilePage({
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <div className="font-display text-2xl font-semibold">{cook.name}</div>
-              {cook.verified ? <VerifiedBadge size="xs" /> : null}
+              <CookVerificationBadge status={verification} />
             </div>
-            <div className="mt-1 text-sm text-gp-charcoal/70">{cook.bio}</div>
+            <p className="mt-1 text-sm text-gp-charcoal/70">{cook.bio}</p>
             <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-gp-charcoal/70">
               <div className="inline-flex items-center gap-1">
                 <Star size={16} className="text-gp-primary" fill="currentColor" />
@@ -110,7 +142,7 @@ export function CookProfilePage({
               onClick={() => setReportOpen(true)}
               className="gp-focus inline-flex items-center gap-1 rounded-2xl bg-gp-surface px-3 py-2 text-xs font-semibold text-gp-charcoal/60 ring-1 ring-black/10 hover:text-gp-primary"
               aria-label="Report cook"
-              title="Report or block"
+              title="Report cook"
             >
               <Flag size={14} />
             </button>
@@ -144,6 +176,11 @@ export function CookProfilePage({
                     onOpenPlate={() => onOpenPlate(r.plateId)}
                     canReplyAsCook={canReplyAsCook}
                     onCookReply={onCookReply}
+                    onReport={
+                      onReportReview
+                        ? () => onReportReview(r.id, `Review by ${r.userName}`)
+                        : undefined
+                    }
                   />
                 </li>
               ))}
@@ -177,3 +214,4 @@ export function CookProfilePage({
     </div>
   )
 }
+

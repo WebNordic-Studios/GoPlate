@@ -149,7 +149,7 @@ export type Message = {
 export type Report = {
   id: string
   /** What is being reported. */
-  target: { type: 'plate' | 'cook'; id: string }
+  target: { type: 'plate' | 'cook' | 'review'; id: string }
   reason: string
   details?: string
   createdAtIso: string
@@ -190,4 +190,6 @@ export type User = {
   cookVerification?: 'none' | 'pending' | 'verified'
   /** IDs of cooks or plates this user has hidden/blocked. */
   blockedCookIds?: string[]
+  /** ISO timestamp when user accepted terms at signup. */
+  termsAcceptedAtIso?: string
 }

@@ -22,6 +22,7 @@ import { ALLERGENS, CUISINES, DIETARY_TAGS } from '../../lib/taxonomy'
 import { geoForZip } from '../../lib/geo'
 import { attachHorizontalWheelScroll } from '../../lib/horizontalWheelScroll'
 import { Button } from '../../ui/Button'
+import { KitchenDisclaimer } from '../../ui/KitchenDisclaimer'
 import { Modal } from '../../ui/Modal'
 
 type NewPlate = Omit<Plate, 'id'>
@@ -543,23 +544,26 @@ export function StartCookingPage({
                     Next
                   </Button>
                 ) : (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button variant="ghost" disabled={!canNext} onClick={saveDraft} leftIcon={<Save size={16} />}>
-                      Save as draft
-                    </Button>
-                    {scheduleAt ? (
-                      <Button variant="ghost" disabled={!canNext} onClick={schedulePublish} leftIcon={<Clock size={16} />}>
-                        Schedule
+                  <div className="flex w-full max-w-md flex-col items-end gap-3">
+                    <KitchenDisclaimer compact />
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      <Button variant="ghost" disabled={!canNext} onClick={saveDraft} leftIcon={<Save size={16} />}>
+                        Save as draft
                       </Button>
-                    ) : null}
-                    <Button
-                      variant="secondary"
-                      disabled={!canNext}
-                      onClick={publishNow}
-                      leftIcon={<CookingPot size={18} />}
-                    >
-                      Publish now
-                    </Button>
+                      {scheduleAt ? (
+                        <Button variant="ghost" disabled={!canNext} onClick={schedulePublish} leftIcon={<Clock size={16} />}>
+                          Schedule
+                        </Button>
+                      ) : null}
+                      <Button
+                        variant="secondary"
+                        disabled={!canNext}
+                        onClick={publishNow}
+                        leftIcon={<CookingPot size={18} />}
+                      >
+                        Publish now
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -759,3 +763,5 @@ function readAsDataUrl(file: File) {
     reader.readAsDataURL(file)
   })
 }
+
+

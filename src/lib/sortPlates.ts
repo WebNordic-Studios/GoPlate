@@ -1,3 +1,5 @@
+import { isPickupWindowSoon } from './plateFilters'
+
 export type SortMode =
   | 'recommended'
   | 'price-asc'
@@ -6,6 +8,7 @@ export type SortMode =
   | 'rating'
   | 'newest'
   | 'almost-sold-out'
+  | 'pickup-soon'
 
 export const SORT_LABEL: Record<SortMode, string> = {
   recommended: 'Recommended',
@@ -15,6 +18,7 @@ export const SORT_LABEL: Record<SortMode, string> = {
   rating: 'Highest rated',
   newest: 'Just listed',
   'almost-sold-out': 'Almost sold out',
+  'pickup-soon': 'Pickup soon',
 }
 
 type SortablePlate = {
@@ -24,6 +28,7 @@ type SortablePlate = {
   ratingCount: number
   portionsAvailable: number
   createdAtIso?: string
+  pickupWindow?: string
 }
 
 export function sortPlates<T extends SortablePlate>(list: T[], sort: SortMode): T[] {
@@ -44,6 +49,11 @@ export function sortPlates<T extends SortablePlate>(list: T[], sort: SortMode): 
         .filter((p) => p.portionsAvailable > 0 && p.portionsAvailable <= 3)
         .sort((a, b) => a.portionsAvailable - b.portionsAvailable)
         .concat(copy.filter((p) => p.portionsAvailable > 3 || p.portionsAvailable <= 0))
+    case 'pickup-soon': {
+      const soon = copy.filter((p) => p.pickupWindow && isPickupWindowSoon(p.pickupWindow))
+      const rest = copy.filter((p) => !p.pickupWindow || !isPickupWindowSoon(p.pickupWindow))
+      return [...soon, ...rest]
+    }
     case 'recommended':
     default:
       return copy.sort((a, b) => recommendScore(b) - recommendScore(a))

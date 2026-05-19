@@ -20,7 +20,7 @@ export function ReportModal({
   onBlock,
 }: {
   open: boolean
-  target: { kind: 'plate' | 'cook'; label: string }
+  target: { kind: 'plate' | 'cook' | 'review'; label: string }
   onClose: () => void
   onSubmit: (input: { reason: string; details?: string }) => void
   onBlock?: () => void

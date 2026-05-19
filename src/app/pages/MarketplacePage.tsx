@@ -4,6 +4,7 @@ import { Clock, Compass, Heart, MapPin, UserPlus2 } from 'lucide-react'
 import type { Category, Cuisine, DietaryTag, Plate } from '../../types'
 import { CategoryRibbon } from '../components/CategoryRibbon'
 import { PlateCard } from '../components/PlateCard'
+import { plateCardWaitlistProps } from '../components/PlateCardExtras'
 import { FilterBar } from '../components/FilterBar'
 import { sortPlates, type SortMode } from '../../lib/sortPlates'
 import { formatMoney } from '../../lib/format'
@@ -13,6 +14,7 @@ import { Button } from '../../ui/Button'
 import { nearestZip, requestUserLocation } from '../../lib/geo'
 import { attachHorizontalWheelScroll } from '../../lib/horizontalWheelScroll'
 import { useToast } from '../../ui/Toast'
+import { matchesDiscoveryFilter, type DiscoveryFilter } from '../../lib/plateFilters'
 
 export function MarketplacePage({
   plates,
@@ -25,6 +27,7 @@ export function MarketplacePage({
   onOpenCook,
   followsByCookId,
   likesByPlateId,
+  waitlist,
 }: {
   plates: Plate[]
   zip: string
@@ -36,6 +39,13 @@ export function MarketplacePage({
   onOpenCook?: (cookId: string) => void
   followsByCookId: Record<string, true>
   likesByPlateId: Record<string, true>
+  waitlist?: {
+    isJoined: (plateId: string) => boolean
+    onJoin: (plateId: string) => void
+    onLeave: (plateId: string) => void
+    requiresLogin: boolean
+    onLogin: () => void
+  }
 }) {
   const location = useLocation()
   const forYouRef = useRef<HTMLElement | null>(null)
@@ -44,6 +54,7 @@ export function MarketplacePage({
   const [dietary, setDietary] = useState<Set<DietaryTag>>(() => new Set())
   const [cuisines, setCuisines] = useState<Set<Cuisine>>(() => new Set())
   const [locating, setLocating] = useState(false)
+  const [discoveryFilter, setDiscoveryFilter] = useState<DiscoveryFilter>('all')
   const toast = useToast()
 
   const visible = useMemo(
@@ -62,9 +73,10 @@ export function MarketplacePage({
         dietary.size === 0
           ? true
           : Array.from(dietary).every((tag) => (p.dietary ?? []).includes(tag))
-      return zipOk && catOk && cuisineOk && dietaryOk
+      const discoveryOk = matchesDiscoveryFilter(p, discoveryFilter)
+      return zipOk && catOk && cuisineOk && dietaryOk && discoveryOk
     })
-  }, [visible, zip, category, cuisines, dietary])
+  }, [visible, zip, category, cuisines, dietary, discoveryFilter])
 
   const sorted = useMemo(() => sortPlates(filtered, sort), [filtered, sort])
 
@@ -156,7 +168,8 @@ export function MarketplacePage({
     return { under10, newCooks, tonight }
   }, [visible])
 
-  const hasActiveFilters = dietary.size > 0 || cuisines.size > 0 || sort !== 'recommended'
+  const hasActiveFilters =
+    dietary.size > 0 || cuisines.size > 0 || sort !== 'recommended' || discoveryFilter !== 'all'
 
   return (
     <div className="gp-container pb-28 pt-6 md:pb-10">
@@ -195,9 +208,12 @@ export function MarketplacePage({
             setDietary(new Set())
             setCuisines(new Set())
             setSort('recommended')
+            setDiscoveryFilter('all')
           }}
           onUseMyLocation={onChangeZip ? handleUseMyLocation : undefined}
           locating={locating}
+          discoveryFilter={discoveryFilter}
+          onChangeDiscoveryFilter={setDiscoveryFilter}
         />
       </div>
 
@@ -247,6 +263,7 @@ export function MarketplacePage({
                     onOpen={() => onOpenPlate(p.id)}
                     onReserve={() => onReservePlate(p.id)}
                     onOpenCook={onOpenCook ? () => onOpenCook(p.cook.id) : undefined}
+                    {...plateCardWaitlistProps(p.id, waitlist)}
                   />
                 ))}
               </div>
@@ -267,6 +284,7 @@ export function MarketplacePage({
                     onOpen={() => onOpenPlate(p.id)}
                     onReserve={() => onReservePlate(p.id)}
                     onOpenCook={onOpenCook ? () => onOpenCook(p.cook.id) : undefined}
+                    {...plateCardWaitlistProps(p.id, waitlist)}
                   />
                 ))}
               </div>
@@ -306,6 +324,7 @@ export function MarketplacePage({
               onOpen={() => onOpenPlate(p.id)}
               onReserve={() => onReservePlate(p.id)}
               onOpenCook={onOpenCook ? () => onOpenCook(p.cook.id) : undefined}
+              {...plateCardWaitlistProps(p.id, waitlist)}
             />
           ))}
         </div>

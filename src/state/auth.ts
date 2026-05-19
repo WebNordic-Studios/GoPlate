@@ -90,12 +90,20 @@ export function useAuth() {
   }, [])
 
   const signUp = useCallback(
-    (input: { email: string; password: string; displayName: string }): { ok: boolean; error?: string } => {
+    (input: {
+      email: string
+      password: string
+      displayName: string
+      ageConfirmed?: boolean
+      termsAccepted?: boolean
+    }): { ok: boolean; error?: string } => {
       const email = input.email.trim().toLowerCase()
       const password = input.password
       const displayName = input.displayName.trim() || email.split('@')[0] || 'User'
       if (!email || !email.includes('@')) return { ok: false, error: 'Enter a valid email.' }
       if (password.length < 6) return { ok: false, error: 'Password must be at least 6 characters.' }
+      if (!input.ageConfirmed) return { ok: false, error: 'You must confirm you are at least 18.' }
+      if (!input.termsAccepted) return { ok: false, error: 'Please accept the terms and liability notice.' }
       const accounts = safeParseAccounts(localStorage.getItem(ACCOUNTS_KEY))
       if (accounts.some((a) => a.email.toLowerCase() === email)) {
         return { ok: false, error: 'An account with that email already exists.' }
@@ -114,6 +122,7 @@ export function useAuth() {
         savedPaymentMethods: [],
         cookVerification: 'none',
         blockedCookIds: [],
+        termsAcceptedAtIso: new Date().toISOString(),
       }
       persistAccounts([...accounts, { email, password, user: created }])
       setUser(created)

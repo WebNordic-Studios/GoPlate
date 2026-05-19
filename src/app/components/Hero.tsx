@@ -115,3 +115,4 @@ export function Hero({ initialZip = '', onSearchZip }: Props) {
     </section>
   )
 }
+

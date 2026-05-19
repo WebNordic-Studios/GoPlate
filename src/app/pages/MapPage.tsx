@@ -1,6 +1,7 @@
 import 'leaflet/dist/leaflet.css'
 import * as L from 'leaflet'
-import { Info, Layers, Search, Star } from 'lucide-react'
+import { Clock, Info, Layers, Search, Sparkles, Star } from 'lucide-react'
+import { DISCOVERY_FILTER_LABEL, matchesDiscoveryFilter, type DiscoveryFilter } from '../../lib/plateFilters'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Category, Plate } from '../../types'
 import { formatDistanceShort, formatMoney } from '../../lib/format'
@@ -28,6 +29,7 @@ export function MapPage({
   const mapEl = useRef<HTMLDivElement | null>(null)
   const [category, setCategory] = useState<Category>('All')
   const [query, setQuery] = useState('')
+  const [discoveryFilter, setDiscoveryFilter] = useState<DiscoveryFilter>('all')
   const [viewportBounds, setViewportBounds] = useState<ViewportBounds | null>(null)
 
   const withGeo = useMemo(
@@ -49,8 +51,9 @@ export function MapPage({
           p.zip.includes(q),
       )
     }
+    list = list.filter((p) => matchesDiscoveryFilter(p, discoveryFilter))
     return list
-  }, [withGeo, category, query])
+  }, [withGeo, category, query, discoveryFilter])
 
   const center = useMemo(() => {
     const first = mapPlates[0]?.geo
@@ -259,6 +262,30 @@ export function MapPage({
             <div className="text-xs font-semibold uppercase tracking-wide text-gp-charcoal/50">Category</div>
             <div className="mt-2">
               <CategoryRibbon value={category} onChange={setCategory} />
+            </div>
+            <div className="mt-3">
+              <div className="text-xs font-semibold uppercase tracking-wide text-gp-charcoal/50">Discovery</div>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {(['all', 'just-listed', 'pickup-soon'] as DiscoveryFilter[]).map((f) => {
+                  const active = discoveryFilter === f
+                  const Icon = f === 'just-listed' ? Sparkles : f === 'pickup-soon' ? Clock : null
+                  return (
+                    <button
+                      key={f}
+                      type="button"
+                      onClick={() => setDiscoveryFilter(f)}
+                      className={`gp-focus inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition ${
+                        active
+                          ? 'bg-gp-primary text-white ring-gp-primary/60'
+                          : 'bg-gp-surface text-gp-charcoal/75 ring-black/10 hover:bg-black/5'
+                      }`}
+                    >
+                      {Icon ? <Icon size={12} aria-hidden /> : null}
+                      {DISCOVERY_FILTER_LABEL[f]}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           </div>
           <div className="w-full sm:max-w-xs">
