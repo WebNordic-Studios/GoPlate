@@ -106,11 +106,7 @@ export function migrateSettings(raw: unknown): Settings {
 }
 
 export function exportLocalGoPlateData() {
-  const payload = {
-    exportedAt: new Date().toISOString(),
-    [SETTINGS_STORAGE_KEY]: localStorage.getItem(SETTINGS_STORAGE_KEY),
-    [MARKETPLACE_STORAGE_KEY]: localStorage.getItem(MARKETPLACE_STORAGE_KEY),
-  }
+  const payload = buildExportPayload()
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -118,4 +114,38 @@ export function exportLocalGoPlateData() {
   a.download = `goplate-local-backup-${new Date().toISOString().slice(0, 10)}.json`
   a.click()
   URL.revokeObjectURL(url)
+}
+
+function buildExportPayload() {
+  return {
+    exportedAt: new Date().toISOString(),
+    [SETTINGS_STORAGE_KEY]: localStorage.getItem(SETTINGS_STORAGE_KEY),
+    [MARKETPLACE_STORAGE_KEY]: localStorage.getItem(MARKETPLACE_STORAGE_KEY),
+    'goplate.auth.v1': localStorage.getItem('goplate.auth.v1'),
+    'goplate.accounts.v1': localStorage.getItem('goplate.accounts.v1'),
+  }
+}
+
+export function importLocalGoPlateData(file: File): Promise<{ ok: true } | { ok: false; error: string }> {
+  return new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        const raw = JSON.parse(String(reader.result)) as Record<string, string | null>
+        if (!raw[SETTINGS_STORAGE_KEY] && !raw[MARKETPLACE_STORAGE_KEY]) {
+          resolve({ ok: false, error: 'Not a GoPlate backup file.' })
+          return
+        }
+        for (const [key, value] of Object.entries(raw)) {
+          if (key === 'exportedAt' || value == null) continue
+          if (typeof value === 'string') localStorage.setItem(key, value)
+        }
+        resolve({ ok: true })
+      } catch {
+        resolve({ ok: false, error: 'Could not parse backup JSON.' })
+      }
+    }
+    reader.onerror = () => resolve({ ok: false, error: 'Could not read file.' })
+    reader.readAsText(file)
+  })
 }

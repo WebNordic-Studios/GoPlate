@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Check, ChefHat, Inbox, MessageCircle, Package, Send, ShoppingBag, Timer, X } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Check, ChefHat, Inbox, LogIn, MessageCircle, Package, Send, ShoppingBag, Timer, X } from 'lucide-react'
 import type { Message, Order, OrderStatus, Plate, User } from '../../types'
 import { Button } from '../../ui/Button'
 import { Modal } from '../../ui/Modal'
@@ -69,6 +70,30 @@ export function OrdersPage({
   const thread = activeOrder ? messagesByOrderId.get(activeOrder.id) ?? [] : []
   const activeOrderPlate = activeOrder ? plates.get(activeOrder.plateId) : undefined
   const activeAsIncoming = Boolean(user && activeOrder && isIncomingOrder(activeOrder, activeOrderPlate, user.id))
+
+  if (!user) {
+    return (
+      <div className="gp-container pb-28 pt-6 md:pb-10">
+        <div className="font-display text-2xl font-semibold">Orders</div>
+        <div className="mt-8">
+          <EmptyState
+            icon={<LogIn size={20} />}
+            title="Sign in to see orders"
+            description="Track placed pickups, incoming cook requests, handoff codes, and messages after you sign in."
+            action={
+              <Link
+                to="/login"
+                state={{ from: '/orders' }}
+                className="gp-focus inline-flex items-center justify-center rounded-2xl bg-gp-primary px-4 py-2 text-sm font-semibold text-white shadow-natural"
+              >
+                Sign in
+              </Link>
+            }
+          />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="gp-container pb-28 pt-6 md:pb-10">

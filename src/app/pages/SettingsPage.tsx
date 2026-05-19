@@ -17,26 +17,42 @@ import {
   Sun,
   Tag,
 } from 'lucide-react'
-import type { Category } from '../../types'
+import { useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { BadgeCheck, CreditCard, Upload, UserRound } from 'lucide-react'
+import type { Category, Plate, User } from '../../types'
 import type { CurrencyCode, LocaleCode, Settings, ThemeMode } from '../../state/settingsModel'
-import { exportLocalGoPlateData } from '../../state/settingsModel'
+import { exportLocalGoPlateData, importLocalGoPlateData } from '../../state/settingsModel'
+import { BlockedCooksPanel } from '../components/BlockedCooksPanel'
 import { Button } from '../../ui/Button'
 
 const CATEGORY_OPTIONS: Category[] = ['All', 'Hot Meals', 'Bakery', 'Desserts', 'Vegan']
 
 export function SettingsPage({
+  user,
+  plates,
   settings,
   onChange,
   onReset,
   onApplyMarketplaceZip,
   onApplyDefaultCategory,
+  onUnblockCook,
+  onApproveCookVerification,
+  onImportComplete,
 }: {
+  user: User
+  plates: Plate[]
   settings: Settings
   onChange: <K extends keyof Settings>(key: K, value: Settings[K]) => void
   onReset: () => void
   onApplyMarketplaceZip: (zip: string) => void
   onApplyDefaultCategory: (category: Category) => void
+  onUnblockCook: (cookId: string) => void
+  onApproveCookVerification: () => void
+  onImportComplete: () => void
 }) {
+  const importRef = useRef<HTMLInputElement>(null)
+  const [importMsg, setImportMsg] = useState<string | null>(null)
   return (
     <div className="gp-container pb-28 pt-6 md:pb-12">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -53,6 +69,25 @@ export function SettingsPage({
       </div>
 
       <div className="mt-10 space-y-10">
+        <SettingsSection
+          title="Account"
+          description="Addresses, payment methods, and phone verification used at checkout."
+          icon={<CreditCard size={18} className="text-gp-secondary" />}
+        >
+          <div className="rounded-[2rem] bg-white/70 p-5 shadow-natural ring-1 ring-black/5">
+            <p className="text-sm text-gp-charcoal/70">
+              Manage saved addresses and cards so checkout can prefill your details.
+            </p>
+            <Link
+              to="/account"
+              className="gp-focus mt-4 inline-flex items-center gap-2 rounded-2xl bg-gp-primary px-4 py-2 text-sm font-semibold text-white shadow-natural"
+            >
+              <UserRound size={18} aria-hidden />
+              Open account
+            </Link>
+          </div>
+        </SettingsSection>
+
         <SettingsSection
           title="Marketplace defaults"
           description="Control what zip and category load when you browse plates."
@@ -349,12 +384,68 @@ export function SettingsPage({
           <div className="rounded-[2rem] bg-white/70 p-5 shadow-natural ring-1 ring-black/5">
             <div className="font-display text-lg font-semibold">Download local backup</div>
             <p className="mt-2 text-sm text-gp-charcoal/70">
-              Includes marketplace plates/orders and these settings as raw JSON from{' '}
-              <span className="font-mono text-xs">localStorage</span>. Restore is manual in this prototype.
+              Includes marketplace, settings, and account data from{' '}
+              <span className="font-mono text-xs">localStorage</span>. Import replaces keys in this browser.
             </p>
-            <Button variant="secondary" className="mt-4" onClick={() => exportLocalGoPlateData()} leftIcon={<Download size={18} />}>
-              Export JSON
-            </Button>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button variant="secondary" onClick={() => exportLocalGoPlateData()} leftIcon={<Download size={18} />}>
+                Export JSON
+              </Button>
+              <Button variant="ghost" onClick={() => importRef.current?.click()} leftIcon={<Upload size={18} />}>
+                Import JSON
+              </Button>
+              <input
+                ref={importRef}
+                type="file"
+                accept="application/json,.json"
+                className="sr-only"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0]
+                  e.target.value = ''
+                  if (!file) return
+                  const result = await importLocalGoPlateData(file)
+                  if (result.ok) {
+                    setImportMsg('Import complete — reloading…')
+                    onImportComplete()
+                  } else {
+                    setImportMsg(result.error)
+                  }
+                }}
+              />
+            </div>
+            {importMsg ? <p className="mt-3 text-sm font-semibold text-gp-charcoal/70">{importMsg}</p> : null}
+          </div>
+        </SettingsSection>
+
+        <SettingsSection
+          title="Blocked cooks"
+          description="Cooks you have hidden from browse and search."
+          icon={<UserRound size={18} className="text-gp-charcoal/60" />}
+        >
+          <BlockedCooksPanel user={user} plates={plates} onUnblock={onUnblockCook} />
+        </SettingsSection>
+
+        <SettingsSection
+          title="Cook verification"
+          description="Food-handler badge shown on your cook profile."
+          icon={<BadgeCheck size={18} className="text-gp-secondary" />}
+        >
+          <div className="rounded-[2rem] bg-white/70 p-5 shadow-natural ring-1 ring-black/5">
+            <p className="text-sm text-gp-charcoal/70">
+              Status:{' '}
+              <span className="font-semibold capitalize">{user.cookVerification ?? 'none'}</span>
+            </p>
+            {user.cookVerification === 'pending' ? (
+              <Button variant="secondary" className="mt-4" onClick={onApproveCookVerification}>
+                Simulate approval (demo)
+              </Button>
+            ) : user.cookVerification !== 'verified' ? (
+              <p className="mt-3 text-xs text-gp-charcoal/60">
+                Submit documents from <Link to="/cook" className="font-semibold text-gp-secondary underline">Create</Link>.
+              </p>
+            ) : (
+              <p className="mt-3 text-xs font-semibold text-gp-secondary">Verified cook badge active.</p>
+            )}
           </div>
         </SettingsSection>
       </div>

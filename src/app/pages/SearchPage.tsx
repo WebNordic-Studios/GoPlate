@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import type { Plate } from '../../types'
 import { PlateCard } from '../components/PlateCard'
+import { EmptyState } from '../../ui/EmptyState'
 
 type CookResult = {
   id: string
@@ -103,7 +104,17 @@ export function SearchPage({
         </div>
       </div>
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-3">
+      {!q ? (
+        <div className="mt-8">
+          <EmptyState
+            icon={<Search size={20} />}
+            title="Search dishes and cooks"
+            description="Try a dish name, ingredient, neighborhood, cook name, or dietary note. Results update as you type."
+          />
+        </div>
+      ) : null}
+
+      <div className={`mt-6 grid gap-4 lg:grid-cols-3 ${!q ? 'hidden' : ''}`}>
         <div className="lg:col-span-1">
           <div className="rounded-[2rem] bg-white/70 p-5 shadow-natural ring-1 ring-black/5">
             <div className="flex items-center gap-2 font-display text-lg font-semibold">
@@ -135,9 +146,10 @@ export function SearchPage({
               ))}
 
               {filteredCooks.length === 0 ? (
-                <div className="rounded-2xl bg-gp-bg p-4 text-sm text-gp-charcoal/65 ring-1 ring-black/5">
-                  No matching profiles yet.
-                </div>
+                <EmptyState
+                  title="No matching cooks"
+                  description="Try another keyword or browse the marketplace."
+                />
               ) : null}
             </div>
           </div>
@@ -164,8 +176,11 @@ export function SearchPage({
           </div>
 
           {filteredPlates.length === 0 ? (
-            <div className="mt-6 rounded-2xl bg-white/70 p-6 text-sm text-gp-charcoal/70 shadow-natural ring-1 ring-black/5">
-              No dishes match your search. Try a different keyword.
+            <div className="mt-6">
+              <EmptyState
+                title="No dishes found"
+                description="No dishes match your search. Try a different keyword or category."
+              />
             </div>
           ) : null}
         </div>

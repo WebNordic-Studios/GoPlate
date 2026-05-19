@@ -1,4 +1,4 @@
-import { BarChart3, Camera, Check, ChefHat, Cog, LogOut, MapPin, Pencil, Star, UserRound } from 'lucide-react'
+import { BarChart3, Camera, Check, ChefHat, Cog, CreditCard, LogOut, MapPin, Pencil, PencilLine, Star, UserRound } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Plate, User } from '../../types'
@@ -126,6 +126,9 @@ export function MePage({
               Cancel
             </Button>
           ) : null}
+          <Button variant="ghost" onClick={() => navigate('/account')} leftIcon={<CreditCard size={18} aria-hidden />}>
+            Account
+          </Button>
           <Button
             variant="ghost"
             onClick={() => navigate('/settings')}
@@ -255,7 +258,11 @@ export function MePage({
           <ul className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {myPlates.map((plate) => (
               <li key={plate.id}>
-                <ProfilePostCard plate={plate} onOpen={() => onOpenPlate(plate.id)} />
+                <ProfilePostCard
+                  plate={plate}
+                  onOpen={() => onOpenPlate(plate.id)}
+                  onEdit={() => navigate(`/cook/edit/${plate.id}`)}
+                />
               </li>
             ))}
           </ul>
@@ -292,7 +299,7 @@ function MeTabButton({
   )
 }
 
-function ProfilePostCard({ plate, onOpen }: { plate: Plate; onOpen: () => void }) {
+function ProfilePostCard({ plate, onOpen, onEdit }: { plate: Plate; onOpen: () => void; onEdit: () => void }) {
   const soldOut = plate.portionsAvailable <= 0
   const src = plate.images[0] ?? 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80'
 
@@ -320,6 +327,17 @@ function ProfilePostCard({ plate, onOpen }: { plate: Plate; onOpen: () => void }
         <div className="mt-2 text-xs text-gp-charcoal/55">
           {soldOut ? 'No portions left' : `${plate.portionsAvailable} portion${plate.portionsAvailable === 1 ? '' : 's'} left`}
         </div>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            onEdit()
+          }}
+          className="gp-focus mt-3 inline-flex items-center gap-1 rounded-xl bg-gp-bg px-2.5 py-1.5 text-xs font-semibold text-gp-charcoal ring-1 ring-black/10"
+        >
+          <PencilLine size={14} aria-hidden />
+          Manage
+        </button>
       </div>
     </button>
   )

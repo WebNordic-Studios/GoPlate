@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
-import { ChefHat, DollarSign, Eye, ShoppingBag, Sparkles, Star, TrendingUp } from 'lucide-react'
+import { ChefHat, DollarSign, Eye, PencilLine, ShoppingBag, Sparkles, Star, TrendingUp } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import type { Order, Plate, User } from '../../types'
 import { Button } from '../../ui/Button'
@@ -175,6 +175,7 @@ export function CookDashboardPage({
                 <th className="px-4 py-3 text-right">Conv.</th>
                 <th className="px-4 py-3 text-right">Revenue</th>
                 <th className="px-4 py-3 text-right">Status</th>
+                <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-black/5 bg-gp-surface/80">
@@ -211,6 +212,16 @@ export function CookDashboardPage({
                           Live
                         </span>
                       )}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/cook/edit/${plate.id}`)}
+                        className="gp-focus inline-flex items-center gap-1 rounded-xl bg-gp-bg px-2.5 py-1.5 text-xs font-semibold text-gp-charcoal ring-1 ring-black/10 hover:bg-black/5"
+                      >
+                        <PencilLine size={14} aria-hidden />
+                        Edit
+                      </button>
                     </td>
                   </tr>
                 )

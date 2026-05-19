@@ -1,5 +1,5 @@
 import { MessageCircle, UserRound } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Navigate, NavLink, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import type { Category, Plate } from '../types'
 import { Modal } from '../ui/Modal'
@@ -33,6 +33,13 @@ import { SearchPage } from './pages/SearchPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { CookDashboardPage } from './pages/CookDashboardPage'
 import { AccountPage } from './pages/AccountPage'
+import { EditPlatePage } from './pages/EditPlatePage'
+import { NotFoundPage } from './pages/NotFoundPage'
+import { RequireAuth } from './components/RequireAuth'
+import { createLocalApi } from '../api/client'
+import { ApiProvider, useApi } from '../api/ApiProvider'
+import { useAsyncMutation } from '../api/useAsyncMutation'
+import type { CheckoutConfirmPayload } from './pages/CheckoutPage'
 import { WriteReviewModal } from './components/WriteReviewModal'
 import { ReportModal } from './components/ReportModal'
 import { ShareModal } from './components/ShareModal'
@@ -44,6 +51,39 @@ import { countMessageThreadsUnread, countPickupReadyBellBadge } from './lib/head
 export default function AppRouter() {
   const marketplace = useMarketplace()
   const auth = useAuth()
+  const { user } = auth
+
+  const api = useMemo(
+    () =>
+      createLocalApi({
+        getPlates: () => marketplace.plates,
+        getOrders: () => marketplace.orders,
+        getUser: () => user,
+        reservePlate: (plateId, opts) => Promise.resolve(marketplace.reservePlate(plateId, opts)),
+        updatePlate: (id, patch) => {
+          marketplace.updatePlate(id, patch)
+          return marketplace.byId.get(id) ?? null
+        },
+        removePlate: (id) => marketplace.removePlate(id),
+      }),
+    [marketplace, user],
+  )
+
+  return (
+    <ApiProvider api={api}>
+      <AppRouterInner marketplace={marketplace} auth={auth} />
+    </ApiProvider>
+  )
+}
+
+function AppRouterInner({
+  marketplace,
+  auth,
+}: {
+  marketplace: ReturnType<typeof useMarketplace>
+  auth: ReturnType<typeof useAuth>
+}) {
+  const { api } = useApi()
   const { user } = auth
   const { settings, set: setSetting, reset: resetSettings } = useSettings()
   const social = useSocial(user?.id ?? null)
@@ -126,12 +166,26 @@ export default function AppRouter() {
     : null
   const reviewPlate = reviewOrder ? marketplace.byId.get(reviewOrder.plateId) ?? null : null
 
-  function handleReservePlate(
-    plateId: string,
-    opts?: { delivery?: boolean; contactlessInstructions?: string; tipCents?: number },
-  ) {
-    const orderId = marketplace.reservePlate(plateId, { ...opts, buyerId: user?.id })
-    if (orderId) {
+  const reserveMutation = useAsyncMutation(
+    useCallback(
+      async (plateId: string, opts: CheckoutConfirmPayload) => {
+        auth.updateProfile({ phone: opts.contactPhone })
+        const orderId = await api.marketplace.reservePlate(plateId, {
+          buyerId: user?.id,
+          delivery: opts.delivery,
+          contactlessInstructions: opts.contactlessInstructions,
+          tipCents: opts.tipCents,
+        })
+        if (!orderId) throw new Error('No portions left for this plate.')
+        return orderId
+      },
+      [api, user?.id, auth],
+    ),
+  )
+
+  async function handleReservePlate(plateId: string, opts: CheckoutConfirmPayload) {
+    const result = await reserveMutation.run(plateId, opts)
+    if (result.ok) {
       toast.push({
         kind: 'success',
         title: 'Reserved!',
@@ -139,7 +193,7 @@ export default function AppRouter() {
       })
       navigate('/orders')
     } else {
-      toast.push({ kind: 'error', title: 'Could not reserve', description: 'No portions left.' })
+      toast.push({ kind: 'error', title: 'Could not reserve', description: result.error.message })
     }
   }
 
@@ -372,9 +426,14 @@ export default function AppRouter() {
             <Route
               path="/checkout/:plateId"
               element={
-                <CheckoutRoute
-                  onConfirm={(plateId, opts) => handleReservePlate(plateId, opts)}
-                />
+                <RequireAuth user={user} from={location.pathname}>
+                  <CheckoutRoute
+                    user={user!}
+                    confirming={reserveMutation.loading}
+                    confirmError={reserveMutation.error?.message ?? null}
+                    onConfirm={(plateId, opts) => void handleReservePlate(plateId, opts)}
+                  />
+                </RequireAuth>
               }
             />
 
@@ -460,6 +519,22 @@ export default function AppRouter() {
             />
 
             <Route
+              path="/cook/edit/:plateId"
+              element={
+                user ? (
+                  <EditPlatePage
+                    user={user}
+                    plates={marketplace.plates}
+                    onUpdate={(id, patch) => marketplace.updatePlate(id, patch)}
+                    onRemove={(id) => marketplace.removePlate(id)}
+                  />
+                ) : (
+                  <Navigate to="/login" replace state={{ from: '/cook/edit' }} />
+                )
+              }
+            />
+
+            <Route
               path="/me"
               element={
                 user ? (
@@ -481,11 +556,22 @@ export default function AppRouter() {
               element={
                 user ? (
                   <SettingsPage
+                    user={user}
+                    plates={visiblePlates}
                     settings={settings}
                     onChange={setSetting}
                     onReset={handleResetSettings}
                     onApplyMarketplaceZip={(z) => setZip(z.trim())}
                     onApplyDefaultCategory={(c) => setCategory(c)}
+                    onUnblockCook={(id) => {
+                      auth.unblockCook(id)
+                      toast.push({ kind: 'success', title: 'Cook unblocked' })
+                    }}
+                    onApproveCookVerification={() => {
+                      auth.setCookVerification('verified')
+                      toast.push({ kind: 'success', title: 'Cook verified', description: 'Badge shown on your profile.' })
+                    }}
+                    onImportComplete={() => window.location.reload()}
                   />
                 ) : (
                   <Navigate to="/login" replace state={{ from: '/settings' }} />
@@ -535,7 +621,7 @@ export default function AppRouter() {
 
             <Route path="/p/:plateId" element={<PlateLinkRoute onOpen={(id) => setOpenPlateId(id)} />} />
 
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </main>
 
@@ -610,12 +696,15 @@ export default function AppRouter() {
 }
 
 function CheckoutRoute({
+  user,
+  confirming,
+  confirmError,
   onConfirm,
 }: {
-  onConfirm: (
-    plateId: string,
-    opts: { delivery: boolean; contactlessInstructions?: string; tipCents: number },
-  ) => void
+  user: import('../types').User
+  confirming: boolean
+  confirmError: string | null
+  onConfirm: (plateId: string, opts: CheckoutConfirmPayload) => void
 }) {
   const { byId } = useMarketplaceContext()
   const { settings } = useSettings()
@@ -627,8 +716,11 @@ function CheckoutRoute({
   return (
     <CheckoutPage
       plate={plate}
+      user={user}
       enableOrderTexts={settings.enableOrderTexts}
       confirmBeforeReserve={settings.confirmBeforeReserve}
+      confirming={confirming}
+      confirmError={confirmError}
       onBackToMarket={() => navigate('/market')}
       onConfirm={(opts) => {
         if (plateId) onConfirm(plateId, opts)

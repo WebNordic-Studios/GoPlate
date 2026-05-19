@@ -5,6 +5,7 @@ import './index.css'
 import AppRouter from './app/AppRouter.tsx'
 import { SettingsProvider } from './state/settings'
 import { ToastProvider } from './ui/Toast'
+import { ErrorBoundary } from './ui/ErrorBoundary'
 
 function routerBasename(): string | undefined {
   const baseUrl = import.meta.env.BASE_URL
@@ -14,12 +15,14 @@ function routerBasename(): string | undefined {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <SettingsProvider>
-      <ToastProvider>
-        <BrowserRouter basename={routerBasename()}>
-          <AppRouter />
-        </BrowserRouter>
-      </ToastProvider>
-    </SettingsProvider>
+    <ErrorBoundary>
+      <SettingsProvider>
+        <ToastProvider>
+          <BrowserRouter basename={routerBasename()}>
+            <AppRouter />
+          </BrowserRouter>
+        </ToastProvider>
+      </SettingsProvider>
+    </ErrorBoundary>
   </StrictMode>,
 )
