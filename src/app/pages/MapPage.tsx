@@ -238,125 +238,86 @@ export function MapPage({
   const hiddenByGeo = plates.length - withGeo.length
 
   return (
-    <div className="gp-container pb-28 pt-6 md:pb-12">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <div className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">Neighborhood map</div>
-          <p className="mt-2 max-w-2xl text-sm text-gp-charcoal/70 sm:text-base">
-            See where today’s pickups cluster, filter by category, and open a dish without leaving the map. Pins match
-            plate type in the legend below.
-          </p>
+    <div className="gp-container pb-28 pt-3 md:pb-12 md:pt-6">
+      <div className="flex items-end justify-between gap-3 lg:hidden">
+        <div className="min-w-0">
+          <div className="font-display text-xl font-semibold tracking-tight">Neighborhood map</div>
+          <p className="mt-0.5 text-xs text-gp-charcoal/60">Pan and tap pins to explore nearby pickups.</p>
+        </div>
+        <div className="shrink-0 rounded-full bg-gp-primary/10 px-2.5 py-1 text-xs font-semibold text-gp-primary">
+          {stats.pins} {stats.pins === 1 ? 'dish' : 'dishes'}
         </div>
       </div>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="hidden lg:block">
+        <div className="font-display text-3xl font-semibold tracking-tight">Neighborhood map</div>
+        <p className="mt-2 max-w-2xl text-base text-gp-charcoal/70">
+          See where today’s pickups cluster, filter by category, and open a dish without leaving the map. Pins match
+          plate type in the legend below.
+        </p>
+      </div>
+
+      <div className="mt-6 hidden gap-3 lg:grid lg:grid-cols-4">
         <StatPill label="Dishes on map" value={String(stats.pins)} />
         <StatPill label="Pickup areas" value={String(stats.areas)} />
         <StatPill label="Cooks shown" value={String(stats.cooks)} />
         <StatPill label="With portions left" value={String(stats.available)} />
       </div>
 
-      <div className="mt-6 rounded-[2rem] bg-white/70 p-4 shadow-natural ring-1 ring-black/5 sm:p-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0 flex-1">
-            <div className="text-xs font-semibold uppercase tracking-wide text-gp-charcoal/50">Category</div>
-            <div className="mt-2">
-              <CategoryRibbon value={category} onChange={setCategory} />
-            </div>
-            <div className="mt-3">
-              <div className="text-xs font-semibold uppercase tracking-wide text-gp-charcoal/50">Discovery</div>
-              <div className="mt-1.5 flex flex-wrap gap-1.5">
-                {(['all', 'just-listed', 'pickup-soon'] as DiscoveryFilter[]).map((f) => {
-                  const active = discoveryFilter === f
-                  const Icon = f === 'just-listed' ? Sparkles : f === 'pickup-soon' ? Clock : null
-                  return (
-                    <button
-                      key={f}
-                      type="button"
-                      onClick={() => setDiscoveryFilter(f)}
-                      className={`gp-focus inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition ${
-                        active
-                          ? 'bg-gp-primary text-white ring-gp-primary/60'
-                          : 'bg-gp-surface text-gp-charcoal/75 ring-black/10 hover:bg-black/5'
-                      }`}
-                    >
-                      {Icon ? <Icon size={12} aria-hidden /> : null}
-                      {DISCOVERY_FILTER_LABEL[f]}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-          <div className="w-full sm:max-w-xs">
-            <label className="text-xs font-semibold uppercase tracking-wide text-gp-charcoal/50" htmlFor="map-search">
-              Search
-            </label>
-            <div className="gp-glass mt-2 flex items-center gap-2 rounded-2xl px-3 py-2">
-              <Search size={18} className="shrink-0 text-gp-charcoal/45" aria-hidden />
-              <input
-                id="map-search"
-                type="search"
-                placeholder="Dish, cook, area, or zip…"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="gp-focus min-w-0 flex-1 bg-transparent text-sm font-semibold text-gp-charcoal placeholder:text-gp-charcoal/40"
-              />
-            </div>
-          </div>
-        </div>
+      <div className="mt-6 hidden lg:block">
+        <MapFiltersCard
+          category={category}
+          onCategoryChange={setCategory}
+          discoveryFilter={discoveryFilter}
+          onDiscoveryFilterChange={setDiscoveryFilter}
+          query={query}
+          onQueryChange={setQuery}
+          searchInputId="map-search"
+        />
       </div>
 
       {hiddenByGeo > 0 ? (
-        <p className="mt-4 text-xs text-gp-charcoal/55">
+        <p className="mt-3 text-xs text-gp-charcoal/55 lg:mt-4">
           {hiddenByGeo} listing{hiddenByGeo === 1 ? '' : 's'} hidden: missing map coordinates in this build.
         </p>
       ) : null}
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-12 lg:items-start">
+      <div className="mt-3 grid gap-4 lg:mt-6 lg:grid-cols-12 lg:items-start lg:gap-6">
         <div className="lg:col-span-8">
-          <div className="relative z-[1] overflow-hidden rounded-[2rem] bg-white shadow-natural ring-1 ring-black/5">
-            <div className="h-[min(52vh,420px)] min-h-[280px] sm:min-h-[360px] lg:h-[min(68vh,640px)]">
+          <div className="mb-2 lg:hidden">
+            <CategoryRibbon value={category} onChange={setCategory} />
+          </div>
+
+          <div className="relative z-[1] overflow-hidden rounded-2xl bg-white shadow-natural ring-1 ring-black/5 lg:rounded-[2rem]">
+            <div className="h-[min(calc(100dvh-13rem),520px)] min-h-[240px] sm:min-h-[300px] lg:h-[min(68vh,640px)]">
               <div className="gp-map-apple-like h-full w-full touch-pan-x touch-pan-y">
-                <div ref={mapEl} className="h-full w-full min-h-[280px]" />
+                <div ref={mapEl} className="h-full w-full min-h-[240px] lg:min-h-[360px]" />
               </div>
             </div>
           </div>
 
           <InThisViewPanel
-            className="mt-4 lg:hidden"
+            className="mt-3 lg:hidden"
             plates={sidebarPlates}
             onOpenPlate={onOpenPlate}
-            listMaxHeight="max-h-[min(42vh,22rem)]"
+            listMaxHeight="max-h-[min(38vh,18rem)]"
+            compact
           />
 
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <div className="rounded-2xl bg-white/70 p-4 shadow-natural ring-1 ring-black/5">
-              <div className="flex items-center gap-2 font-display text-sm font-semibold text-gp-charcoal">
-                <Layers className="h-4 w-4 text-gp-secondary" aria-hidden />
-                Pin legend
-              </div>
-              <ul className="mt-3 space-y-2 text-sm text-gp-charcoal/75">
-                <LegendRow color={categoryMarkerColor('Hot Meals')} label="Hot Meals" />
-                <LegendRow color={categoryMarkerColor('Bakery')} label="Bakery" />
-                <LegendRow color={categoryMarkerColor('Desserts')} label="Desserts" />
-                <LegendRow color={categoryMarkerColor('Vegan')} label="Vegan" />
-                <LegendRow color="#064E3B" label="Cluster (zoom to expand)" />
-              </ul>
-            </div>
-            <div className="rounded-2xl bg-gp-secondary/[0.06] p-4 ring-1 ring-black/5">
-              <div className="flex items-center gap-2 font-display text-sm font-semibold text-gp-charcoal">
-                <Info className="h-4 w-4 text-gp-primary" aria-hidden />
-                Map tips
-              </div>
-              <ul className="mt-3 list-inside list-disc space-y-1.5 text-sm text-gp-charcoal/70">
-                <li>Scroll to zoom; drag to pan the neighborhood.</li>
-                <li>Tap a pin for pickup window, price, and a quick link into the dish.</li>
-                <li>Tap a numbered cluster to zoom into that area.</li>
-                <li>Combine filters to plan a route across multiple stops.</li>
-                <li>The sidebar lists meals only inside your current map window.</li>
-              </ul>
-            </div>
+          <MapMobileExtras
+            className="mt-3 space-y-2 lg:hidden"
+            stats={stats}
+            category={category}
+            onCategoryChange={setCategory}
+            discoveryFilter={discoveryFilter}
+            onDiscoveryFilterChange={setDiscoveryFilter}
+            query={query}
+            onQueryChange={setQuery}
+          />
+
+          <div className="mt-4 hidden gap-4 lg:grid lg:grid-cols-2">
+            <MapLegendCard />
+            <MapTipsCard />
           </div>
         </div>
 
@@ -367,7 +328,212 @@ export function MapPage({
           listMaxHeight="max-h-[min(68vh,640px)]"
         />
       </div>
+    </div>
+  )
+}
 
+function MapFiltersCard({
+  category,
+  onCategoryChange,
+  discoveryFilter,
+  onDiscoveryFilterChange,
+  query,
+  onQueryChange,
+  searchInputId,
+}: {
+  category: Category
+  onCategoryChange: (c: Category) => void
+  discoveryFilter: DiscoveryFilter
+  onDiscoveryFilterChange: (f: DiscoveryFilter) => void
+  query: string
+  onQueryChange: (q: string) => void
+  searchInputId: string
+}) {
+  return (
+    <div className="rounded-[2rem] bg-white/70 p-5 shadow-natural ring-1 ring-black/5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <div className="text-xs font-semibold uppercase tracking-wide text-gp-charcoal/50">Category</div>
+          <div className="mt-2">
+            <CategoryRibbon value={category} onChange={onCategoryChange} />
+          </div>
+          <DiscoveryFilterRow
+            className="mt-3"
+            discoveryFilter={discoveryFilter}
+            onDiscoveryFilterChange={onDiscoveryFilterChange}
+          />
+        </div>
+        <MapSearchField
+          id={searchInputId}
+          value={query}
+          onChange={onQueryChange}
+          className="w-full sm:max-w-xs"
+        />
+      </div>
+    </div>
+  )
+}
+
+function MapMobileExtras({
+  className,
+  stats,
+  category,
+  onCategoryChange,
+  discoveryFilter,
+  onDiscoveryFilterChange,
+  query,
+  onQueryChange,
+}: {
+  className?: string
+  stats: { pins: number; areas: number; cooks: number; available: number }
+  category: Category
+  onCategoryChange: (c: Category) => void
+  discoveryFilter: DiscoveryFilter
+  onDiscoveryFilterChange: (f: DiscoveryFilter) => void
+  query: string
+  onQueryChange: (q: string) => void
+}) {
+  return (
+    <div className={className}>
+      <details className="group rounded-2xl bg-white/70 shadow-natural ring-1 ring-black/5">
+        <summary className="gp-focus cursor-pointer list-none px-4 py-3 text-sm font-semibold text-gp-charcoal [&::-webkit-details-marker]:hidden">
+          <span className="flex items-center justify-between gap-2">
+            Search &amp; filters
+            <span className="text-xs font-medium text-gp-charcoal/50 group-open:hidden">Expand</span>
+          </span>
+        </summary>
+        <div className="space-y-4 border-t border-black/5 px-4 pb-4 pt-3">
+          <DiscoveryFilterRow discoveryFilter={discoveryFilter} onDiscoveryFilterChange={onDiscoveryFilterChange} />
+          <MapSearchField id="map-search-mobile" value={query} onChange={onQueryChange} />
+          <div className="text-xs font-semibold uppercase tracking-wide text-gp-charcoal/50">Category</div>
+          <CategoryRibbon value={category} onChange={onCategoryChange} />
+        </div>
+      </details>
+
+      <details className="group rounded-2xl bg-white/70 shadow-natural ring-1 ring-black/5">
+        <summary className="gp-focus cursor-pointer list-none px-4 py-3 text-sm font-semibold text-gp-charcoal [&::-webkit-details-marker]:hidden">
+          <span className="flex items-center justify-between gap-2">
+            Stats, legend &amp; tips
+            <span className="text-xs font-medium text-gp-charcoal/50 group-open:hidden">
+              {stats.pins} dishes
+            </span>
+          </span>
+        </summary>
+        <div className="space-y-4 border-t border-black/5 px-4 pb-4 pt-3">
+          <div className="grid grid-cols-2 gap-2">
+            <StatPill label="Areas" value={String(stats.areas)} compact />
+            <StatPill label="Cooks" value={String(stats.cooks)} compact />
+            <StatPill label="Available" value={String(stats.available)} compact />
+            <StatPill label="On map" value={String(stats.pins)} compact />
+          </div>
+          <MapLegendCard />
+          <MapTipsCard />
+        </div>
+      </details>
+    </div>
+  )
+}
+
+function DiscoveryFilterRow({
+  className = '',
+  discoveryFilter,
+  onDiscoveryFilterChange,
+}: {
+  className?: string
+  discoveryFilter: DiscoveryFilter
+  onDiscoveryFilterChange: (f: DiscoveryFilter) => void
+}) {
+  return (
+    <div className={className}>
+      <div className="text-xs font-semibold uppercase tracking-wide text-gp-charcoal/50">Discovery</div>
+      <div className="mt-1.5 flex flex-wrap gap-1.5">
+        {(['all', 'just-listed', 'pickup-soon'] as DiscoveryFilter[]).map((f) => {
+          const active = discoveryFilter === f
+          const Icon = f === 'just-listed' ? Sparkles : f === 'pickup-soon' ? Clock : null
+          return (
+            <button
+              key={f}
+              type="button"
+              onClick={() => onDiscoveryFilterChange(f)}
+              className={`gp-focus inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition ${
+                active
+                  ? 'bg-gp-primary text-white ring-gp-primary/60'
+                  : 'bg-gp-surface text-gp-charcoal/75 ring-black/10 hover:bg-black/5'
+              }`}
+            >
+              {Icon ? <Icon size={12} aria-hidden /> : null}
+              {DISCOVERY_FILTER_LABEL[f]}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function MapSearchField({
+  id,
+  value,
+  onChange,
+  className = '',
+}: {
+  id: string
+  value: string
+  onChange: (q: string) => void
+  className?: string
+}) {
+  return (
+    <div className={className}>
+      <label className="text-xs font-semibold uppercase tracking-wide text-gp-charcoal/50" htmlFor={id}>
+        Search
+      </label>
+      <div className="gp-glass mt-2 flex items-center gap-2 rounded-2xl px-3 py-2">
+        <Search size={18} className="shrink-0 text-gp-charcoal/45" aria-hidden />
+        <input
+          id={id}
+          type="search"
+          placeholder="Dish, cook, area, or zip…"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="gp-focus min-w-0 flex-1 bg-transparent text-sm font-semibold text-gp-charcoal placeholder:text-gp-charcoal/40"
+        />
+      </div>
+    </div>
+  )
+}
+
+function MapLegendCard() {
+  return (
+    <div className="rounded-2xl bg-white/70 p-4 shadow-natural ring-1 ring-black/5">
+      <div className="flex items-center gap-2 font-display text-sm font-semibold text-gp-charcoal">
+        <Layers className="h-4 w-4 text-gp-secondary" aria-hidden />
+        Pin legend
+      </div>
+      <ul className="mt-3 space-y-2 text-sm text-gp-charcoal/75">
+        <LegendRow color={categoryMarkerColor('Hot Meals')} label="Hot Meals" />
+        <LegendRow color={categoryMarkerColor('Bakery')} label="Bakery" />
+        <LegendRow color={categoryMarkerColor('Desserts')} label="Desserts" />
+        <LegendRow color={categoryMarkerColor('Vegan')} label="Vegan" />
+        <LegendRow color="#064E3B" label="Cluster (zoom to expand)" />
+      </ul>
+    </div>
+  )
+}
+
+function MapTipsCard() {
+  return (
+    <div className="rounded-2xl bg-gp-secondary/[0.06] p-4 ring-1 ring-black/5">
+      <div className="flex items-center gap-2 font-display text-sm font-semibold text-gp-charcoal">
+        <Info className="h-4 w-4 text-gp-primary" aria-hidden />
+        Map tips
+      </div>
+      <ul className="mt-3 list-inside list-disc space-y-1.5 text-sm text-gp-charcoal/70">
+        <li>Scroll to zoom; drag to pan the neighborhood.</li>
+        <li>Tap a pin for pickup window, price, and a quick link into the dish.</li>
+        <li>Tap a numbered cluster to zoom into that area.</li>
+        <li>Combine filters to plan a route across multiple stops.</li>
+        <li>The list below shows meals only inside your current map window.</li>
+      </ul>
     </div>
   )
 }
@@ -377,23 +543,27 @@ function InThisViewPanel({
   plates,
   onOpenPlate,
   listMaxHeight,
+  compact = false,
 }: {
   className?: string
   plates: Plate[]
   onOpenPlate: (plateId: string) => void
   listMaxHeight: string
+  compact?: boolean
 }) {
   return (
     <aside className={className}>
       <div className="flex items-center justify-between gap-2">
-        <div className="font-display text-lg font-semibold">In this view</div>
+        <div className={`font-display font-semibold ${compact ? 'text-base' : 'text-lg'}`}>In this view</div>
         <span className="rounded-full bg-gp-primary/10 px-3 py-1 text-xs font-semibold text-gp-primary">
           {plates.length} here
         </span>
       </div>
-      <p className="mt-1 text-xs text-gp-charcoal/60">
-        Only dishes inside the map frame — pan or zoom to explore another pocket.
-      </p>
+      {!compact ? (
+        <p className="mt-1 text-xs text-gp-charcoal/60">
+          Only dishes inside the map frame — pan or zoom to explore another pocket.
+        </p>
+      ) : null}
       <div className={`mt-4 space-y-3 overflow-y-auto pr-1 ${listMaxHeight}`}>
         {plates.length === 0 ? (
           <p className="rounded-2xl bg-white/70 px-4 py-6 text-center text-sm text-gp-charcoal/60 ring-1 ring-black/5">
@@ -407,11 +577,13 @@ function InThisViewPanel({
   )
 }
 
-function StatPill({ label, value }: { label: string; value: string }) {
+function StatPill({ label, value, compact = false }: { label: string; value: string; compact?: boolean }) {
   return (
-    <div className="rounded-2xl bg-white/70 p-4 shadow-natural ring-1 ring-black/5">
+    <div className={`rounded-2xl bg-white/70 shadow-natural ring-1 ring-black/5 ${compact ? 'p-3' : 'p-4'}`}>
       <div className="text-xs font-semibold uppercase tracking-wide text-gp-charcoal/50">{label}</div>
-      <div className="mt-1 font-display text-2xl font-semibold text-gp-charcoal">{value}</div>
+      <div className={`mt-1 font-display font-semibold text-gp-charcoal ${compact ? 'text-lg' : 'text-2xl'}`}>
+        {value}
+      </div>
     </div>
   )
 }

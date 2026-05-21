@@ -1,4 +1,17 @@
-import { Cog, CreditCard, Heart, Home, MapPin, Plus, Search, ShoppingBag, Store, User, type LucideIcon } from 'lucide-react'
+import {
+  Bookmark,
+  Cog,
+  CreditCard,
+  Heart,
+  Home,
+  MapPin,
+  Plus,
+  Search,
+  ShoppingBag,
+  Store,
+  User,
+  type LucideIcon,
+} from 'lucide-react'
 import { GoPlateLogoMark } from '../../ui/GoPlateLogo'
 import { NavLink, useNavigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
@@ -10,6 +23,20 @@ type Props = {
   /** Hide the mobile tab bar (e.g. while a full-height overlay is open). */
   hideBottomNav?: boolean
 }
+
+const MOBILE_QUICK_LINKS: {
+  to: string
+  label: string
+  icon: LucideIcon
+  tint: 'primary' | 'secondary' | 'neutral'
+}[] = [
+  { to: '/me', label: 'Profile', icon: User, tint: 'secondary' },
+  { to: '/favorites', label: 'Saved', icon: Heart, tint: 'secondary' },
+  { to: '/waitlists', label: 'Waitlists', icon: Bookmark, tint: 'secondary' },
+  { to: '/account', label: 'Account', icon: CreditCard, tint: 'primary' },
+  { to: '/cook', label: 'Create', icon: Plus, tint: 'primary' },
+  { to: '/settings', label: 'Settings', icon: Cog, tint: 'neutral' },
+]
 
 function TopNavLink({
   to,
@@ -43,9 +70,21 @@ function TopNavLink({
   )
 }
 
-export function NavigationShellRouter({ rightSlot, profilePath = '/me', hideBottomNav = false }: Props) {
+export function NavigationShellRouter({
+  rightSlot,
+  profilePath = '/me',
+  hideBottomNav = false,
+}: Props) {
   const [q, setQ] = useState('')
   const navigate = useNavigate()
+
+  const quickLinks = useMemo(
+    () =>
+      MOBILE_QUICK_LINKS.map((link) =>
+        link.to === '/me' ? { ...link, to: profilePath } : link,
+      ),
+    [profilePath],
+  )
 
   const submit = useMemo(
     () => () => {
@@ -60,17 +99,17 @@ export function NavigationShellRouter({ rightSlot, profilePath = '/me', hideBott
     <>
       <header className="sticky top-0 z-40 border-b border-black/5 bg-white/70 backdrop-blur-glass">
         <div className="gp-container">
-          <div className="flex h-[4.75rem] items-center justify-between gap-3 sm:h-20">
+          <div className="flex h-14 items-center justify-between gap-2 sm:h-[4.75rem] md:h-20">
             <NavLink
               to="/"
-              className="gp-focus flex items-center gap-2.5 rounded-2xl px-2 py-1"
+              className="gp-focus flex min-w-0 items-center gap-2 rounded-2xl px-1 py-1 sm:gap-2.5 sm:px-2"
               aria-label="GoPlate"
             >
               <span className="flex shrink-0 items-center justify-center [-webkit-tap-highlight-color:transparent]">
                 <GoPlateLogoMark size="md" decorative className="drop-shadow-[0_1px_3px_rgb(0_0_0_/0.08)]" />
               </span>
               <div className="min-w-0">
-                <div className="font-display text-base font-semibold leading-none">GoPlate</div>
+                <div className="font-display text-sm font-semibold leading-none sm:text-base">GoPlate</div>
                 <div className="hidden text-xs text-gp-charcoal/60 sm:block">Home cooking, one block away</div>
               </div>
             </NavLink>
@@ -119,7 +158,7 @@ export function NavigationShellRouter({ rightSlot, profilePath = '/me', hideBott
                 to="/orders"
                 title="Orders"
                 className={({ isActive }) =>
-                  `gp-focus md:hidden grid h-10 w-10 shrink-0 place-items-center rounded-2xl text-gp-charcoal/70 transition hover:bg-black/5 ${
+                  `gp-focus md:hidden grid h-9 w-9 shrink-0 place-items-center rounded-xl text-gp-charcoal/70 transition hover:bg-black/5 sm:h-10 sm:w-10 sm:rounded-2xl ${
                     isActive ? 'bg-black/10 text-gp-charcoal' : ''
                   }`
                 }
@@ -131,74 +170,65 @@ export function NavigationShellRouter({ rightSlot, profilePath = '/me', hideBott
             </div>
           </div>
 
-          {/* Narrow screens: quick links not in the tab bar */}
-          <div className="md:hidden">
-            <div className="grid grid-cols-3 gap-2 pb-3 pt-0.5">
-              <MobileQuickLink to={profilePath} label="Profile" icon={User} tint="secondary" />
-              <MobileQuickLink to="/favorites" label="Saved" icon={Heart} tint="secondary" />
-              <MobileQuickLink to="/waitlists" label="Waitlists" icon={ShoppingBag} tint="secondary" />
-              <MobileQuickLink to="/account" label="Account" icon={CreditCard} tint="primary" />
-              <MobileQuickLink to="/cook" label="Create" icon={Plus} tint="primary" />
-              <MobileQuickLink to="/settings" label="Settings" icon={Cog} tint="neutral" ariaLabel="Settings" />
+          <nav
+            className="md:hidden border-t border-black/[0.06] bg-gp-bg/50"
+            aria-label="Quick links"
+          >
+            <div className="flex gap-2 overflow-x-auto overscroll-x-contain py-2.5 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {quickLinks.map((link) => (
+                <MobileQuickLinkPill key={link.label} {...link} />
+              ))}
             </div>
-          </div>
+          </nav>
         </div>
       </header>
 
       {!hideBottomNav ? (
-      <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-black/5 bg-white/85 backdrop-blur-glass pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden">
-        <div className="gp-container px-2 sm:px-4">
-          <div className="grid grid-cols-5 gap-0.5 py-1.5 sm:gap-1 sm:py-2">
-            <BottomTab to="/" label="Home" icon={<Home size={19} />} />
-            <BottomTab to="/market" label="Food" title="Find food — marketplace" icon={<Store size={19} />} />
-            <BottomTab to="/search" label="Search" icon={<Search size={19} />} />
-            <BottomTab to="/map" label="Map" icon={<MapPin size={19} />} />
-            <BottomTab to="/me" label="Profile" icon={<User size={19} />} />
+        <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-black/5 bg-white/85 backdrop-blur-glass pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden">
+          <div className="gp-container px-2 sm:px-4">
+            <div className="grid grid-cols-5 gap-0.5 py-1.5 sm:gap-1 sm:py-2">
+              <BottomTab to="/" label="Home" icon={<Home size={19} />} />
+              <BottomTab to="/market" label="Food" title="Find food — marketplace" icon={<Store size={19} />} />
+              <BottomTab to="/search" label="Search" icon={<Search size={19} />} />
+              <BottomTab to="/map" label="Map" icon={<MapPin size={19} />} />
+              <BottomTab to={profilePath} label="Profile" icon={<User size={19} />} />
+            </div>
           </div>
-        </div>
-      </nav>
+        </nav>
       ) : null}
     </>
   )
 }
 
-function MobileQuickLink({
+function MobileQuickLinkPill({
   to,
   label,
   icon: Icon,
   tint,
-  ariaLabel,
 }: {
   to: string
   label: string
   icon: LucideIcon
   tint: 'primary' | 'secondary' | 'neutral'
-  ariaLabel?: string
 }) {
-  const iconWrap =
+  const styles =
     tint === 'primary'
-      ? 'bg-gp-primary/12 text-gp-primary'
+      ? 'bg-gp-primary/10 text-gp-primary ring-gp-primary/20'
       : tint === 'secondary'
-        ? 'bg-gp-secondary/10 text-gp-secondary'
-        : 'bg-black/[0.05] text-gp-charcoal/70'
+        ? 'bg-gp-secondary/10 text-gp-secondary ring-gp-secondary/20'
+        : 'bg-white text-gp-charcoal/75 ring-black/10'
 
   return (
     <NavLink
       to={to}
-      aria-label={ariaLabel ?? label}
-      title={label}
       className={({ isActive }) =>
-        `gp-focus flex min-w-0 flex-col items-center gap-1.5 rounded-2xl px-2 py-2.5 text-center transition ${
-          isActive
-            ? 'bg-white shadow-natural ring-1 ring-gp-primary/25'
-            : 'bg-white/75 ring-1 ring-black/[0.06] hover:bg-white hover:ring-black/10'
+        `gp-focus inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition ${
+          isActive ? 'bg-gp-primary text-white ring-gp-primary/40' : styles
         }`
       }
     >
-      <span className={`grid h-9 w-9 place-items-center rounded-xl ${iconWrap}`}>
-        <Icon size={18} strokeWidth={2} aria-hidden />
-      </span>
-      <span className="w-full truncate text-[11px] font-semibold leading-tight text-gp-charcoal">{label}</span>
+      <Icon size={15} strokeWidth={2.25} aria-hidden />
+      {label}
     </NavLink>
   )
 }
@@ -219,4 +249,3 @@ function BottomTab({ to, label, icon, title }: { to: string; label: string; icon
     </NavLink>
   )
 }
-
