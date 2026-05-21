@@ -30,11 +30,11 @@ const MOBILE_QUICK_LINKS: {
   icon: LucideIcon
   tint: 'primary' | 'secondary' | 'neutral'
 }[] = [
+  { to: '/cook', label: 'Create', icon: Plus, tint: 'primary' },
   { to: '/me', label: 'Profile', icon: User, tint: 'secondary' },
   { to: '/favorites', label: 'Saved', icon: Heart, tint: 'secondary' },
   { to: '/waitlists', label: 'Waitlists', icon: Bookmark, tint: 'secondary' },
   { to: '/account', label: 'Account', icon: CreditCard, tint: 'primary' },
-  { to: '/cook', label: 'Create', icon: Plus, tint: 'primary' },
   { to: '/settings', label: 'Settings', icon: Cog, tint: 'neutral' },
 ]
 
@@ -97,8 +97,8 @@ export function NavigationShellRouter({
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-black/5 bg-white/70 backdrop-blur-glass">
-        <div className="gp-container">
+      <header className="sticky top-0 z-40 overflow-x-clip border-b border-black/5 bg-white/70 backdrop-blur-glass">
+        <div className="gp-container min-w-0">
           <div className="flex h-14 items-center justify-between gap-2 sm:h-[4.75rem] md:h-20">
             <NavLink
               to="/"
@@ -171,10 +171,10 @@ export function NavigationShellRouter({
           </div>
 
           <nav
-            className="md:hidden border-t border-black/[0.06] bg-gp-bg/50"
+            className="md:hidden min-w-0 border-t border-black/[0.06] bg-gp-bg/50"
             aria-label="Quick links"
           >
-            <div className="flex gap-2 overflow-x-auto overscroll-x-contain py-2.5 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex max-w-full gap-2 overflow-x-auto overscroll-x-contain py-2.5 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {quickLinks.map((link) => (
                 <MobileQuickLinkPill key={link.label} {...link} />
               ))}

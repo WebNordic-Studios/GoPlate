@@ -22,10 +22,20 @@
   html,
   body {
     height: 100%;
+    overflow-x: clip;
   }
 
   body {
     @apply bg-gp-bg text-gp-charcoal font-sans antialiased;
+  }
+
+  /* Prevent iOS Safari from zooming the page when focusing small inputs. */
+  @media (max-width: 767px) {
+    input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']),
+    select,
+    textarea {
+      font-size: 1rem;
+    }
   }
 
   ::selection {

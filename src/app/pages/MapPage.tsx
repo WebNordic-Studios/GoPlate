@@ -10,6 +10,8 @@ import { Button } from '../../ui/Button'
 import { CategoryRibbon } from '../components/CategoryRibbon'
 
 const DEFAULT_CENTER: L.LatLngExpression = { lat: 40.73, lng: -73.99 }
+const DEFAULT_MAP_ZOOM = 12
+const MIN_MAP_ZOOM = 12
 
 /** Serialized Leaflet bounds for React state (prototype locales stay away from the antimeridian). */
 type ViewportBounds = { south: number; west: number; north: number; east: number }
@@ -27,6 +29,9 @@ export function MapPage({
   onOpenPlate: (plateId: string) => void
 }) {
   const mapEl = useRef<HTMLDivElement | null>(null)
+  const mapInstanceRef = useRef<L.Map | null>(null)
+  const clusterLayerRef = useRef<L.LayerGroup | null>(null)
+  const initialViewSetRef = useRef(false)
   const [category, setCategory] = useState<Category>('All')
   const [query, setQuery] = useState('')
   const [discoveryFilter, setDiscoveryFilter] = useState<DiscoveryFilter>('all')
@@ -54,11 +59,6 @@ export function MapPage({
     list = list.filter((p) => matchesDiscoveryFilter(p, discoveryFilter))
     return list
   }, [withGeo, category, query, discoveryFilter])
-
-  const center = useMemo(() => {
-    const first = mapPlates[0]?.geo
-    return first ? ({ lat: first.lat, lng: first.lng } as L.LatLngExpression) : DEFAULT_CENTER
-  }, [mapPlates])
 
   const stats = useMemo(() => {
     const areas = new Set(mapPlates.map((p) => p.geo.areaLabel))
@@ -88,14 +88,13 @@ export function MapPage({
     if (container._leaflet_id) container._leaflet_id = null
 
     const map = L.map(mapEl.current, {
-      center,
-      zoom: 11,
+      center: DEFAULT_CENTER,
+      zoom: DEFAULT_MAP_ZOOM,
       scrollWheelZoom: true,
       touchZoom: true,
       dragging: true,
     })
 
-    // Voyager + gp-map-apple-like CSS: closest Leaflet-friendly analogue to Apple Maps’ warm, quiet standard style.
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
       attribution:
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
@@ -104,87 +103,12 @@ export function MapPage({
       detectRetina: true,
     }).addTo(map)
 
-    const layer: L.LayerGroup = L.layerGroup().addTo(map)
+    const layer = L.layerGroup().addTo(map)
+    mapInstanceRef.current = map
+    clusterLayerRef.current = layer
+    initialViewSetRef.current = false
 
-    function renderClusters() {
-      layer.clearLayers()
-      const zoom = map.getZoom()
-      const cellDeg = zoom >= 14 ? 0 : zoom >= 12 ? 0.01 : zoom >= 10 ? 0.05 : zoom >= 8 ? 0.15 : 0.6
-      const buckets = new Map<string, Plate[]>()
-      for (const p of mapPlates) {
-        if (!p.geo) continue
-        let key: string
-        if (cellDeg <= 0) {
-          key = `${p.geo.lat.toFixed(6)},${p.geo.lng.toFixed(6)}`
-        } else {
-          const lat = Math.floor(p.geo.lat / cellDeg)
-          const lng = Math.floor(p.geo.lng / cellDeg)
-          key = `${lat}_${lng}`
-        }
-        const arr = buckets.get(key) ?? []
-        arr.push(p)
-        buckets.set(key, arr)
-      }
-
-      for (const arr of buckets.values()) {
-        if (arr.length === 1) {
-          const p = arr[0]
-          const color = categoryMarkerColor(p.category)
-          const icon = L.divIcon({
-            className: 'gp-map-pin',
-            html: `<div style="width:22px;height:22px;display:grid;place-items:center"><span style="width:14px;height:14px;border-radius:999px;background:${color};box-shadow:0 8px 18px -10px rgba(17,24,39,.7);border:2px solid white"></span></div>`,
-            iconSize: [22, 22],
-            iconAnchor: [11, 11],
-          })
-          const m = L.marker([p.geo.lat, p.geo.lng], { icon }).addTo(layer)
-          const content = document.createElement('div')
-          content.style.minWidth = '220px'
-          content.innerHTML = `
-            <div style="font-weight:700;font-size:14px;margin-bottom:4px">${escapeHtml(p.name)}</div>
-            <div style="opacity:.72;font-size:12px;margin-bottom:4px">${escapeHtml(p.category)}</div>
-            <div style="opacity:.72;font-size:12px;margin-bottom:8px">${escapeHtml(p.geo.areaLabel)} • ${escapeHtml(
-              p.pickupWindow,
-            )}</div>
-            <div style="font-weight:700;font-size:14px;margin-bottom:10px">${escapeHtml(formatMoney(p.priceCents))}</div>
-            <button data-plate-id="${escapeAttr(
-              p.id,
-            )}" style="border:0;border-radius:16px;padding:10px 12px;background:#F97316;color:white;font-weight:700;cursor:pointer">View dish</button>
-          `
-          m.bindPopup(content)
-          m.on('popupopen', () => {
-            const btn = content.querySelector('button[data-plate-id]') as HTMLButtonElement | null
-            if (!btn) return
-            L.DomEvent.disableClickPropagation(btn)
-            const open = () => onOpenPlate(p.id)
-            L.DomEvent.on(btn, 'click', open)
-            L.DomEvent.on(btn, 'touchend', (e) => {
-              L.DomEvent.preventDefault(e)
-              open()
-            })
-          })
-        } else {
-          const avgLat = arr.reduce((s, p) => s + p.geo.lat, 0) / arr.length
-          const avgLng = arr.reduce((s, p) => s + p.geo.lng, 0) / arr.length
-          const size = arr.length >= 30 ? 56 : arr.length >= 10 ? 48 : 40
-          const bg = arr.length >= 30 ? '#BE185D' : arr.length >= 10 ? '#F97316' : '#064E3B'
-          const fontSize = arr.length >= 100 ? '11px' : '13px'
-          const icon = L.divIcon({
-            className: '',
-            html: `<div style="width:${size}px;height:${size}px;border-radius:999px;background:${bg};color:white;display:grid;place-items:center;font-weight:800;font-size:${fontSize};box-shadow:0 16px 28px -14px rgba(17,24,39,.65);border:3px solid rgba(255,255,255,.9)">${arr.length}</div>`,
-            iconSize: [size, size],
-            iconAnchor: [size / 2, size / 2],
-          })
-          const clusterMarker = L.marker([avgLat, avgLng], { icon }).addTo(layer)
-          clusterMarker.on('click', () => {
-            const b = L.latLngBounds(arr.map((p) => [p.geo.lat, p.geo.lng] as L.LatLngTuple))
-            map.fitBounds(b, { padding: [60, 60], maxZoom: 15 })
-          })
-        }
-      }
-    }
-
-    function onMapViewChanged() {
-      renderClusters()
+    function syncViewportBounds() {
       const b = map.getBounds()
       setViewportBounds({
         south: b.getSouth(),
@@ -194,26 +118,15 @@ export function MapPage({
       })
     }
 
-    map.on('zoomend moveend', onMapViewChanged)
-
-    const latlngs: L.LatLngTuple[] = mapPlates
-      .filter((p) => p.geo && typeof p.geo.lat === 'number' && typeof p.geo.lng === 'number')
-      .map((p) => [p.geo.lat, p.geo.lng])
-
-    if (latlngs.length === 0) {
-      map.setView(DEFAULT_CENTER, 11)
-    } else if (latlngs.length === 1) {
-      map.setView(latlngs[0], 13)
-    } else {
-      const b = L.latLngBounds(latlngs)
-      map.fitBounds(b, { padding: [48, 48], maxZoom: 14 })
+    function onMapViewChanged() {
+      syncViewportBounds()
     }
 
-    onMapViewChanged()
+    map.on('zoomend moveend', onMapViewChanged)
 
     const fitMap = () => {
       map.invalidateSize({ animate: false })
-      onMapViewChanged()
+      syncViewportBounds()
     }
     const fitTimer = window.setTimeout(fitMap, 120)
     window.addEventListener('resize', fitMap)
@@ -232,8 +145,32 @@ export function MapPage({
       map.off('zoomend moveend', onMapViewChanged)
       layer.clearLayers()
       map.remove()
+      mapInstanceRef.current = null
+      clusterLayerRef.current = null
+      initialViewSetRef.current = false
     }
-  }, [mapPlates, center, onOpenPlate])
+  }, [])
+
+  useEffect(() => {
+    const map = mapInstanceRef.current
+    const layer = clusterLayerRef.current
+    if (!map || !layer) return
+
+    renderMapClusters(map, layer, mapPlates, onOpenPlate)
+
+    if (!initialViewSetRef.current) {
+      applyInitialMapView(map, mapPlates)
+      initialViewSetRef.current = true
+    }
+
+    const b = map.getBounds()
+    setViewportBounds({
+      south: b.getSouth(),
+      west: b.getWest(),
+      north: b.getNorth(),
+      east: b.getEast(),
+    })
+  }, [mapPlates, onOpenPlate])
 
   const hiddenByGeo = plates.length - withGeo.length
 
@@ -289,7 +226,7 @@ export function MapPage({
           </div>
 
           <div className="relative z-[1] overflow-hidden rounded-2xl bg-white shadow-natural ring-1 ring-black/5 lg:rounded-[2rem]">
-            <div className="h-[min(calc(100dvh-13rem),520px)] min-h-[240px] sm:min-h-[300px] lg:h-[min(68vh,640px)]">
+            <div className="h-[min(56svh,480px)] min-h-[240px] sm:min-h-[300px] lg:h-[min(68vh,640px)]">
               <div className="gp-map-apple-like h-full w-full touch-pan-x touch-pan-y">
                 <div ref={mapEl} className="h-full w-full min-h-[240px] lg:min-h-[360px]" />
               </div>
@@ -642,6 +579,108 @@ function MapPlateRow({ plate, onOpen }: { plate: Plate; onOpen: () => void }) {
       </div>
     </div>
   )
+}
+
+function applyInitialMapView(map: L.Map, plates: Plate[]) {
+  const latlngs: L.LatLngTuple[] = plates
+    .filter((p) => p.geo && typeof p.geo.lat === 'number' && typeof p.geo.lng === 'number')
+    .map((p) => [p.geo.lat, p.geo.lng])
+
+  if (latlngs.length === 0) {
+    map.setView(DEFAULT_CENTER, DEFAULT_MAP_ZOOM)
+    return
+  }
+  if (latlngs.length === 1) {
+    map.setView(latlngs[0], 13)
+    return
+  }
+
+  const b = L.latLngBounds(latlngs)
+  map.fitBounds(b, { padding: [48, 48], maxZoom: 14 })
+  if (map.getZoom() < MIN_MAP_ZOOM) map.setZoom(MIN_MAP_ZOOM)
+}
+
+function renderMapClusters(
+  map: L.Map,
+  layer: L.LayerGroup,
+  plates: Plate[],
+  onOpenPlate: (plateId: string) => void,
+) {
+  layer.clearLayers()
+  const zoom = map.getZoom()
+  const cellDeg = zoom >= 14 ? 0 : zoom >= 12 ? 0.01 : zoom >= 10 ? 0.05 : zoom >= 8 ? 0.15 : 0.6
+  const buckets = new Map<string, Plate[]>()
+  for (const p of plates) {
+    if (!p.geo) continue
+    let key: string
+    if (cellDeg <= 0) {
+      key = `${p.geo.lat.toFixed(6)},${p.geo.lng.toFixed(6)}`
+    } else {
+      const lat = Math.floor(p.geo.lat / cellDeg)
+      const lng = Math.floor(p.geo.lng / cellDeg)
+      key = `${lat}_${lng}`
+    }
+    const arr = buckets.get(key) ?? []
+    arr.push(p)
+    buckets.set(key, arr)
+  }
+
+  for (const arr of buckets.values()) {
+    if (arr.length === 1) {
+      const p = arr[0]
+      const color = categoryMarkerColor(p.category)
+      const icon = L.divIcon({
+        className: 'gp-map-pin',
+        html: `<div style="width:22px;height:22px;display:grid;place-items:center"><span style="width:14px;height:14px;border-radius:999px;background:${color};box-shadow:0 8px 18px -10px rgba(17,24,39,.7);border:2px solid white"></span></div>`,
+        iconSize: [22, 22],
+        iconAnchor: [11, 11],
+      })
+      const m = L.marker([p.geo.lat, p.geo.lng], { icon }).addTo(layer)
+      const content = document.createElement('div')
+      content.style.minWidth = '220px'
+      content.innerHTML = `
+        <div style="font-weight:700;font-size:14px;margin-bottom:4px">${escapeHtml(p.name)}</div>
+        <div style="opacity:.72;font-size:12px;margin-bottom:4px">${escapeHtml(p.category)}</div>
+        <div style="opacity:.72;font-size:12px;margin-bottom:8px">${escapeHtml(p.geo.areaLabel)} • ${escapeHtml(
+          p.pickupWindow,
+        )}</div>
+        <div style="font-weight:700;font-size:14px;margin-bottom:10px">${escapeHtml(formatMoney(p.priceCents))}</div>
+        <button data-plate-id="${escapeAttr(
+          p.id,
+        )}" style="border:0;border-radius:16px;padding:10px 12px;background:#F97316;color:white;font-weight:700;cursor:pointer">View dish</button>
+      `
+      m.bindPopup(content)
+      m.on('popupopen', () => {
+        const btn = content.querySelector('button[data-plate-id]') as HTMLButtonElement | null
+        if (!btn) return
+        L.DomEvent.disableClickPropagation(btn)
+        const open = () => onOpenPlate(p.id)
+        L.DomEvent.on(btn, 'click', open)
+        L.DomEvent.on(btn, 'touchend', (e) => {
+          L.DomEvent.preventDefault(e)
+          open()
+        })
+      })
+    } else {
+      const avgLat = arr.reduce((s, p) => s + p.geo.lat, 0) / arr.length
+      const avgLng = arr.reduce((s, p) => s + p.geo.lng, 0) / arr.length
+      const size = arr.length >= 30 ? 56 : arr.length >= 10 ? 48 : 40
+      const bg = arr.length >= 30 ? '#BE185D' : arr.length >= 10 ? '#F97316' : '#064E3B'
+      const fontSize = arr.length >= 100 ? '11px' : '13px'
+      const icon = L.divIcon({
+        className: '',
+        html: `<div style="width:${size}px;height:${size}px;border-radius:999px;background:${bg};color:white;display:grid;place-items:center;font-weight:800;font-size:${fontSize};box-shadow:0 16px 28px -14px rgba(17,24,39,.65);border:3px solid rgba(255,255,255,.9)">${arr.length}</div>`,
+        iconSize: [size, size],
+        iconAnchor: [size / 2, size / 2],
+      })
+      const clusterMarker = L.marker([avgLat, avgLng], { icon }).addTo(layer)
+      clusterMarker.on('click', () => {
+        const b = L.latLngBounds(arr.map((p) => [p.geo.lat, p.geo.lng] as L.LatLngTuple))
+        map.fitBounds(b, { padding: [60, 60], maxZoom: 15 })
+        if (map.getZoom() < MIN_MAP_ZOOM) map.setZoom(MIN_MAP_ZOOM)
+      })
+    }
+  }
 }
 
 function categoryMarkerColor(category: Plate['category']): string {

@@ -21,7 +21,7 @@ export function CategoryRibbon({
   return (
     <div
       ref={scrollRef}
-      className="-mx-4 flex gap-2 overflow-x-auto overscroll-x-contain px-4 py-2 touch-pan-x [-webkit-overflow-scrolling:touch] items-center sm:mx-0 sm:px-0"
+      className="flex gap-2 overflow-x-auto overscroll-x-contain py-2 touch-pan-x [-webkit-overflow-scrolling:touch] items-center"
     >
       {CATEGORIES.map((c) => {
         const active = c === value

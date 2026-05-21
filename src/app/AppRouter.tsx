@@ -15,6 +15,7 @@ import { useMessages } from '../state/messages'
 import { useReports } from '../state/reports'
 import { useRecentlyViewed } from '../state/recentlyViewed'
 import { NavigationShellRouter } from './components/NavigationRouter'
+import { ScrollToTop } from './components/ScrollToTop'
 import { SiteFooterLinks } from './components/SiteFooterLinks'
 import { LandingPage } from './pages/LandingPage'
 import { MarketplacePage } from './pages/MarketplacePage'
@@ -419,6 +420,7 @@ function AppRouterInner({
         />
 
         <main>
+          <ScrollToTop />
           <Routes>
             <Route
               path="/"
