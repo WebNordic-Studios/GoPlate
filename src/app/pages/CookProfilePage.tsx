@@ -1,4 +1,4 @@
-import { Flag, ShieldOff, Star } from 'lucide-react'
+import { Bell, BellOff, Flag, ShieldOff, Star } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Plate, Review } from '../../types'
@@ -26,6 +26,8 @@ export function CookProfilePage({
   userCookVerification,
   onCookReply,
   onReportReview,
+  notifyOnNewListing,
+  onToggleNotifyOnListing,
 }: {
   cookId: string
   plates: Plate[]
@@ -42,8 +44,11 @@ export function CookProfilePage({
   userCookVerification?: CookVerificationDisplay
   onCookReply?: (reviewId: string, body: string) => void
   onReportReview?: (reviewId: string, label: string) => void
+  notifyOnNewListing?: boolean
+  onToggleNotifyOnListing?: () => void
 }) {
   const [reportOpen, setReportOpen] = useState(false)
+  const [reviewSort, setReviewSort] = useState<'newest' | 'highest' | 'lowest'>('newest')
   const byCook = useMemo(
     () => plates.filter((p) => p.cook.id === cookId && !p.isDraft),
     [plates, cookId],
@@ -132,10 +137,20 @@ export function CookProfilePage({
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant={isFollowing ? 'ghost' : 'secondary'} onClick={onToggleFollow}>
             {isFollowing ? 'Following' : 'Follow'}
           </Button>
+          {isFollowing && onToggleNotifyOnListing ? (
+            <Button
+              variant="ghost"
+              onClick={onToggleNotifyOnListing}
+              leftIcon={notifyOnNewListing ? <Bell size={16} /> : <BellOff size={16} />}
+              className="!text-xs"
+            >
+              {notifyOnNewListing ? 'Notifying on new plates' : 'Notify on new plates'}
+            </Button>
+          ) : null}
           {onReport ? (
             <button
               type="button"
@@ -162,11 +177,31 @@ export function CookProfilePage({
       </div>
 
       <section className="mt-10">
-        <h2 className="font-display text-xl font-semibold">Reviews</h2>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <h2 className="font-display text-xl font-semibold">Reviews</h2>
+          {cookReviews.length > 1 ? (
+            <label className="text-xs font-semibold text-gp-charcoal/60">
+              Sort
+              <select
+                value={reviewSort}
+                onChange={(e) => setReviewSort(e.target.value as typeof reviewSort)}
+                className="gp-focus ml-2 rounded-xl bg-gp-surface px-2 py-1.5 text-xs font-semibold ring-1 ring-black/5"
+              >
+                <option value="newest">Newest</option>
+                <option value="highest">Highest rated</option>
+                <option value="lowest">Lowest rated</option>
+              </select>
+            </label>
+          ) : null}
+        </div>
         {cookReviews.length > 0 ? (
           <ul className="mt-4 grid gap-3 md:grid-cols-2">
-            {cookReviews
-              .sort((a, b) => b.createdAtIso.localeCompare(a.createdAtIso))
+            {[...cookReviews]
+              .sort((a, b) => {
+                if (reviewSort === 'highest') return b.rating - a.rating || b.createdAtIso.localeCompare(a.createdAtIso)
+                if (reviewSort === 'lowest') return a.rating - b.rating || b.createdAtIso.localeCompare(a.createdAtIso)
+                return b.createdAtIso.localeCompare(a.createdAtIso)
+              })
               .map((r) => (
                 <li key={r.id}>
                   <ReviewCard

@@ -100,13 +100,19 @@ export function LoginPage({
             }}>
               Use demo
             </Button>
+            <Link
+              to="/forgot-password"
+              className="gp-focus ml-auto rounded-xl px-2 py-1 text-sm font-semibold text-gp-secondary underline decoration-gp-secondary/30"
+            >
+              Forgot password?
+            </Link>
             {onResetPassword ? (
               <button
                 type="button"
                 onClick={() => setShowReset(true)}
-                className="gp-focus ml-auto rounded-xl px-2 py-1 text-sm font-semibold text-gp-secondary underline decoration-gp-secondary/30"
+                className="gp-focus rounded-xl px-2 py-1 text-xs font-semibold text-gp-charcoal/55 underline"
               >
-                Forgot password?
+                Quick reset (demo)
               </button>
             ) : null}
           </div>

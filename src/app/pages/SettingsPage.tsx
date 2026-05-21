@@ -38,6 +38,7 @@ export function SettingsPage({
   onApplyDefaultCategory,
   onUnblockCook,
   onApproveCookVerification,
+  onRejectCookVerification,
   onImportComplete,
 }: {
   user: User
@@ -49,6 +50,7 @@ export function SettingsPage({
   onApplyDefaultCategory: (category: Category) => void
   onUnblockCook: (cookId: string) => void
   onApproveCookVerification: () => void
+  onRejectCookVerification?: () => void
   onImportComplete: () => void
 }) {
   const importRef = useRef<HTMLInputElement>(null)
@@ -436,9 +438,24 @@ export function SettingsPage({
               <span className="font-semibold capitalize">{user.cookVerification ?? 'none'}</span>
             </p>
             {user.cookVerification === 'pending' ? (
-              <Button variant="secondary" className="mt-4" onClick={onApproveCookVerification}>
-                Simulate approval (demo)
-              </Button>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button variant="secondary" onClick={onApproveCookVerification}>
+                  Simulate approval (demo)
+                </Button>
+                {onRejectCookVerification ? (
+                  <Button variant="ghost" onClick={onRejectCookVerification} className="text-red-700">
+                    Simulate rejection (demo)
+                  </Button>
+                ) : null}
+              </div>
+            ) : user.cookVerification === 'rejected' ? (
+              <p className="mt-3 text-sm text-red-800/90">
+                Your verification was not approved. Update documents from{' '}
+                <Link to="/cook" className="font-semibold text-gp-secondary underline">
+                  Create
+                </Link>{' '}
+                and resubmit.
+              </p>
             ) : user.cookVerification !== 'verified' ? (
               <p className="mt-3 text-xs text-gp-charcoal/60">
                 Submit documents from <Link to="/cook" className="font-semibold text-gp-secondary underline">Create</Link>.

@@ -15,6 +15,7 @@ import { useMessages } from '../state/messages'
 import { useReports } from '../state/reports'
 import { useRecentlyViewed } from '../state/recentlyViewed'
 import { NavigationShellRouter } from './components/NavigationRouter'
+import { SiteFooterLinks } from './components/SiteFooterLinks'
 import { LandingPage } from './pages/LandingPage'
 import { MarketplacePage } from './pages/MarketplacePage'
 import { MessagesDrawer } from './components/MessagesDrawer'
@@ -31,7 +32,6 @@ import { MePage } from './pages/MePage'
 import { CookProfilePage } from './pages/CookProfilePage'
 import { SearchPage } from './pages/SearchPage'
 import { SettingsPage } from './pages/SettingsPage'
-import { CookDashboardPage } from './pages/CookDashboardPage'
 import { AccountPage } from './pages/AccountPage'
 import { EditPlatePage } from './pages/EditPlatePage'
 import { NotFoundPage } from './pages/NotFoundPage'
@@ -46,10 +46,22 @@ import { ShareModal } from './components/ShareModal'
 import { useSettings } from '../state/settings'
 import { DEFAULT_SETTINGS } from '../state/settingsModel'
 import { useToast } from '../ui/Toast'
-import { countMessageThreadsUnread, countPickupReadyBellBadge } from './lib/headerUnreadBadges'
+import { countMessageThreadsUnread } from './lib/headerUnreadBadges'
 import { messageRoleForOrder } from './lib/orderRoles'
 import { useWaitlist } from '../state/waitlist'
 import { FavoritesPage } from './pages/FavoritesPage'
+import { WaitlistsPage } from './pages/WaitlistsPage'
+import { OrderConfirmedPage } from './pages/OrderConfirmedPage'
+import { OrderDetailPage } from './pages/OrderDetailPage'
+import { TermsPage } from './pages/TermsPage'
+import { PrivacyPage } from './pages/PrivacyPage'
+import { HelpPage } from './pages/HelpPage'
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
+import { VerifyEmailPage } from './pages/VerifyEmailPage'
+import { PayoutsPage } from './pages/PayoutsPage'
+import { MyReportsPage } from './pages/MyReportsPage'
+import { DeclineOrderModal } from './components/DeclineOrderModal'
+import { buildNotifications, useNotificationReadState } from '../state/notificationsFeed'
 
 export default function AppRouter() {
   const marketplace = useMarketplace()
@@ -117,6 +129,9 @@ function AppRouterInner({
     label: string
   } | null>(null)
   const waitlist = useWaitlist(user?.id ?? null)
+  const notificationReads = useNotificationReadState()
+  const [waitlistOpenedIds, setWaitlistOpenedIds] = useState<string[]>([])
+  const [declineOrderId, setDeclineOrderId] = useState<string | null>(null)
   const [shareForPlateId, setShareForPlateId] = useState<string | null>(null)
 
   const openPlate = openPlateId ? marketplace.byId.get(openPlateId) ?? null : null
@@ -164,9 +179,41 @@ function AppRouterInner({
     [user, marketplace.orders, messages.byOrderId],
   )
 
+  const appNotifications = useMemo(() => {
+    if (!user) return []
+    const newListings = marketplace.plates
+      .filter(
+        (p) =>
+          !p.isDraft &&
+          social.notifyOnListing(p.cook.id) &&
+          p.cook.id !== user.id &&
+          p.createdAtIso &&
+          Date.now() - Date.parse(p.createdAtIso) < 7 * 86_400_000,
+      )
+      .slice(0, 3)
+      .map((p) => ({ cookId: p.cook.id, cookName: p.cook.name, plateId: p.id }))
+    return buildNotifications({
+      userId: user.id,
+      orders: marketplace.orders,
+      messages: messages.messages,
+      platesById: marketplace.byId,
+      waitlistOpenedPlateIds: waitlistOpenedIds,
+      verificationStatus: user.cookVerification,
+      newListingCookNames: newListings,
+    })
+  }, [
+    user,
+    marketplace.orders,
+    marketplace.plates,
+    marketplace.byId,
+    messages.messages,
+    waitlistOpenedIds,
+    social,
+  ])
+
   const notificationsUnreadApprox = useMemo(
-    () => (user ? countPickupReadyBellBadge(marketplace.orders) : 0),
-    [user, marketplace.orders],
+    () => appNotifications.filter((n) => !notificationReads.isRead(n.id)).length,
+    [appNotifications, notificationReads],
   )
 
   const reviewOrder = reviewForOrderId
@@ -183,6 +230,9 @@ function AppRouterInner({
           delivery: opts.delivery,
           contactlessInstructions: opts.contactlessInstructions,
           tipCents: opts.tipCents,
+          quantity: opts.quantity,
+          contactName: opts.contactName,
+          contactPhone: opts.contactPhone,
         })
         if (!orderId) throw new Error('No portions left for this plate.')
         return orderId
@@ -194,15 +244,24 @@ function AppRouterInner({
   async function handleReservePlate(plateId: string, opts: CheckoutConfirmPayload) {
     const result = await reserveMutation.run(plateId, opts)
     if (result.ok) {
-      toast.push({
-        kind: 'success',
-        title: 'Reserved!',
-        description: 'Find your pickup code in Orders.',
-      })
-      navigate('/orders')
+      navigate(`/orders/${result.data}/confirmed`, { replace: true })
     } else {
       toast.push({ kind: 'error', title: 'Could not reserve', description: result.error.message })
     }
+  }
+
+  function notifyWaitlistForPlate(plateId: string) {
+    const count = waitlist.countForPlate(plateId)
+    if (count === 0) {
+      toast.push({ kind: 'info', title: 'No waitlist', description: 'Nobody is waiting on this plate.' })
+      return
+    }
+    setWaitlistOpenedIds((prev) => (prev.includes(plateId) ? prev : [...prev, plateId]))
+    toast.push({
+      kind: 'success',
+      title: 'Waitlist notified',
+      description: `${count} ${count === 1 ? 'person' : 'people'} will see an in-app alert.`,
+    })
   }
 
   function handleCreatePlate(input: Omit<Plate, 'id'>, opts?: { asDraft?: boolean; scheduledIso?: string }) {
@@ -212,7 +271,7 @@ function AppRouterInner({
       scheduledPublishAtIso: opts?.scheduledIso,
     })
     if (opts?.asDraft && !opts.scheduledIso) {
-      toast.push({ kind: 'info', title: 'Draft saved', description: 'Find it in your dashboard.' })
+      toast.push({ kind: 'info', title: 'Draft saved', description: 'Find it under Profile → Analytics.' })
       return
     }
     if (opts?.scheduledIso) {
@@ -221,7 +280,7 @@ function AppRouterInner({
         title: 'Scheduled',
         description: `Goes live ${new Date(opts.scheduledIso).toLocaleString()}.`,
       })
-      navigate('/cook/dashboard')
+      navigate('/me?tab=analytics')
       return
     }
     toast.push({ kind: 'success', title: 'Plate listed', description: 'Now visible in the marketplace.' })
@@ -311,8 +370,10 @@ function AppRouterInner({
                   setNotificationsOpen(v)
                 }}
                 user={user}
-                orders={marketplace.orders}
+                notifications={appNotifications}
                 badgeCount={notificationsUnreadApprox}
+                isRead={notificationReads.isRead}
+                onMarkRead={notificationReads.markRead}
               />
               <button
                 type="button"
@@ -426,6 +487,92 @@ function AppRouterInner({
             />
 
             <Route
+              path="/waitlists"
+              element={
+                user ? (
+                  <WaitlistsPage
+                    plates={visiblePlates}
+                    joinedPlateIds={waitlist.listPlateIdsForUser()}
+                    waitlist={{
+                      isJoined: waitlist.isJoined,
+                      onJoin: (id) => {
+                        waitlist.join(id)
+                        toast.push({ kind: 'success', title: 'On waitlist' })
+                      },
+                      onLeave: (id) => waitlist.leave(id),
+                      requiresLogin: false,
+                      onLogin: () => navigate('/login'),
+                    }}
+                    onOpenPlate={(id) => setOpenPlateId(id)}
+                    onReservePlate={(id) => navigate(`/checkout/${id}`)}
+                  />
+                ) : (
+                  <Navigate to="/login" replace state={{ from: '/waitlists' }} />
+                )
+              }
+            />
+
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/help" element={<HelpPage />} />
+
+            <Route
+              path="/forgot-password"
+              element={
+                <ForgotPasswordPage
+                  onReset={(email, pw) => {
+                    const r = auth.resetPassword(email, pw)
+                    if (r.ok) toast.push({ kind: 'success', title: 'Password updated' })
+                    return r
+                  }}
+                />
+              }
+            />
+
+            <Route
+              path="/verify-email"
+              element={
+                user ? (
+                  <VerifyEmailPage
+                    user={user}
+                    onVerify={() => {
+                      auth.markEmailVerified()
+                      toast.push({ kind: 'success', title: 'Email verified' })
+                    }}
+                  />
+                ) : (
+                  <Navigate to="/login" replace />
+                )
+              }
+            />
+
+            <Route
+              path="/reports"
+              element={
+                user ? (
+                  <MyReportsPage reports={reports.forReporter(user.id)} />
+                ) : (
+                  <Navigate to="/login" replace />
+                )
+              }
+            />
+
+            <Route
+              path="/cook/payouts"
+              element={
+                user ? (
+                  <PayoutsPage
+                    user={user}
+                    orders={marketplace.orders}
+                    plateIds={new Set(marketplace.plates.filter((p) => p.cook.id === user.id).map((p) => p.id))}
+                  />
+                ) : (
+                  <Navigate to="/login" replace />
+                )
+              }
+            />
+
+            <Route
               path="/map"
               element={<MapPage plates={visiblePlates} onOpenPlate={(id) => setOpenPlateId(id)} />}
             />
@@ -474,6 +621,16 @@ function AppRouterInner({
                   onReportReview={(reviewId, label) =>
                     setReportTarget({ type: 'review', id: reviewId, label })
                   }
+                  notifyOnListing={(id) => social.notifyOnListing(id)}
+                  onToggleNotifyOnListing={(id) => {
+                    const wasOn = social.notifyOnListing(id)
+                    social.toggleNotifyOnListing(id)
+                    toast.push({
+                      kind: 'info',
+                      title: wasOn ? 'Notifications off' : 'Notifications on',
+                      description: 'Alerts when this cook lists a new plate.',
+                    })
+                  }}
                 />
               }
             />
@@ -493,6 +650,45 @@ function AppRouterInner({
             />
 
             <Route
+              path="/orders/:orderId/confirmed"
+              element={
+                <RequireAuth user={user} from={location.pathname}>
+                  <OrderConfirmedRoute orders={marketplace.orders} plates={marketplace.byId} />
+                </RequireAuth>
+              }
+            />
+
+            <Route
+              path="/orders/:orderId"
+              element={
+                <RequireAuth user={user} from={location.pathname}>
+                  <OrderDetailRoute
+                    user={user!}
+                    orders={marketplace.orders}
+                    plates={marketplace.byId}
+                    messagesByOrderId={messages.byOrderId}
+                    onSendMessage={(orderId, body) => {
+                      const order = marketplace.orders.find((o) => o.id === orderId)
+                      const plate = order ? marketplace.byId.get(order.plateId) : undefined
+                      messages.sendMessage(orderId, messageRoleForOrder(order!, user!.id, plate), body)
+                    }}
+                    onUpdateStatus={(orderId, status) => {
+                      marketplace.updateOrderStatus(orderId, status)
+                      toast.push({ kind: 'info', title: `Order ${status}` })
+                    }}
+                    onCancel={(orderId) => {
+                      marketplace.cancelOrder(orderId, 'buyer', 'Cancelled by buyer')
+                      toast.push({ kind: 'info', title: 'Order cancelled' })
+                    }}
+                    onDecline={(orderId) => setDeclineOrderId(orderId)}
+                    onLeaveReview={(orderId) => setReviewForOrderId(orderId)}
+                    onReorder={(plateId) => navigate(`/checkout/${plateId}`)}
+                  />
+                </RequireAuth>
+              }
+            />
+
+            <Route
               path="/orders"
               element={
                 <OrdersPage
@@ -500,6 +696,7 @@ function AppRouterInner({
                   orders={marketplace.orders}
                   plates={marketplace.byId}
                   messagesByOrderId={messages.byOrderId}
+                  onOpenOrder={(id) => navigate(`/orders/${id}`)}
                   onSendMessage={(orderId, body) => {
                     const order = marketplace.orders.find((o) => o.id === orderId)
                     const plate = order ? marketplace.byId.get(order.plateId) : undefined
@@ -511,10 +708,12 @@ function AppRouterInner({
                     toast.push({ kind: 'info', title: `Order ${status}` })
                   }}
                   onCancel={(orderId) => {
-                    marketplace.updateOrderStatus(orderId, 'Cancelled')
+                    marketplace.cancelOrder(orderId, 'buyer', 'Cancelled by buyer')
                     toast.push({ kind: 'info', title: 'Order cancelled' })
                   }}
+                  onDecline={(orderId) => setDeclineOrderId(orderId)}
                   onLeaveReview={(orderId) => setReviewForOrderId(orderId)}
+                  onReorder={(plateId) => navigate(`/checkout/${plateId}`)}
                 />
               }
             />
@@ -562,21 +761,7 @@ function AppRouterInner({
               }
             />
 
-            <Route
-              path="/cook/dashboard"
-              element={
-                user ? (
-                  <CookDashboardPage
-                    user={user}
-                    plates={marketplace.plates}
-                    orders={marketplace.orders}
-                    views={marketplace.views}
-                  />
-                ) : (
-                  <Navigate to="/login" replace state={{ from: '/cook/dashboard' }} />
-                )
-              }
-            />
+            <Route path="/cook/dashboard" element={<Navigate to="/me?tab=analytics" replace />} />
 
             <Route
               path="/cook/edit/:plateId"
@@ -604,6 +789,10 @@ function AppRouterInner({
                     onSaveProfile={(p) => auth.updateProfile(p)}
                     onOpenPlate={(id) => setOpenPlateId(id)}
                     onDeleteReview={handleDeleteReview}
+                    waitlistCountForPlate={waitlist.countForPlate}
+                    onNotifyWaitlist={notifyWaitlistForPlate}
+                    onOpenOrder={(id) => navigate(`/orders/${id}`)}
+                    onOpenMessages={(orderId) => navigate(`/orders?chat=${orderId}`)}
                   />
                 ) : (
                   <Navigate to="/login" replace />
@@ -630,6 +819,14 @@ function AppRouterInner({
                     onApproveCookVerification={() => {
                       auth.setCookVerification('verified')
                       toast.push({ kind: 'success', title: 'Cook verified', description: 'Badge shown on your profile.' })
+                    }}
+                    onRejectCookVerification={() => {
+                      auth.setCookVerification('rejected')
+                      toast.push({
+                        kind: 'info',
+                        title: 'Verification not approved',
+                        description: 'You can resubmit from Create.',
+                      })
                     }}
                     onImportComplete={() => window.location.reload()}
                   />
@@ -684,6 +881,7 @@ function AppRouterInner({
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </main>
+        <SiteFooterLinks />
 
         <Modal open={Boolean(openPlate)} title={openPlate ? 'Plate details' : undefined} onClose={() => setOpenPlateId(null)}>
           {openPlate ? (
@@ -745,6 +943,7 @@ function AppRouterInner({
                 reason: input.reason,
                 details: input.details,
                 reporterUserId: user?.id,
+                targetLabel: reportTarget.label,
               })
               toast.push({
                 kind: 'success',
@@ -764,6 +963,22 @@ function AppRouterInner({
             onClose={() => setShareForPlateId(null)}
           />
         ) : null}
+
+        <DeclineOrderModal
+          open={Boolean(declineOrderId)}
+          plateName={
+            declineOrderId
+              ? marketplace.orders.find((o) => o.id === declineOrderId)?.plateName ?? 'Order'
+              : 'Order'
+          }
+          onClose={() => setDeclineOrderId(null)}
+          onConfirm={(reason) => {
+            if (!declineOrderId) return
+            marketplace.cancelOrder(declineOrderId, 'cook', reason)
+            toast.push({ kind: 'info', title: 'Order declined', description: 'Buyer has been notified.' })
+            setDeclineOrderId(null)
+          }}
+        />
       </div>
       </ReviewsProvider>
     </MarketplaceProvider>
@@ -819,6 +1034,8 @@ function CookProfileRoute({
   onCookReply,
   onUnblock,
   onReportReview,
+  notifyOnListing,
+  onToggleNotifyOnListing,
 }: {
   plates: Plate[]
   reviewsList: import('../types').Review[]
@@ -834,6 +1051,8 @@ function CookProfileRoute({
   onCookReply?: (reviewId: string, body: string) => void
   onUnblock?: (cookId: string) => void
   onReportReview?: (reviewId: string, label: string) => void
+  notifyOnListing?: (cookId: string) => boolean
+  onToggleNotifyOnListing?: (cookId: string) => void
 }) {
   const params = useParams()
   const cookId = params.cookId || ''
@@ -855,6 +1074,10 @@ function CookProfileRoute({
       onCookReply={onCookReply}
       onUnblock={onUnblock ? () => onUnblock(cookId) : undefined}
       onReportReview={onReportReview}
+      notifyOnNewListing={notifyOnListing?.(cookId)}
+      onToggleNotifyOnListing={
+        onToggleNotifyOnListing ? () => onToggleNotifyOnListing(cookId) : undefined
+      }
     />
   )
 }
@@ -870,4 +1093,80 @@ function PlateLinkRoute({ onOpen }: { onOpen: (id: string) => void }) {
     }
   }, [id, navigate, onOpen])
   return null
+}
+
+function OrderConfirmedRoute({
+  orders,
+  plates,
+}: {
+  orders: import('../types').Order[]
+  plates: Map<string, import('../types').Plate>
+}) {
+  const params = useParams()
+  const navigate = useNavigate()
+  const order = orders.find((o) => o.id === params.orderId)
+  const plate = order ? plates.get(order.plateId) : undefined
+  if (!order) {
+    return (
+      <div className="gp-container py-16 text-center">
+        <p className="text-sm text-gp-charcoal/65">Order not found.</p>
+        <button type="button" className="gp-focus mt-4 text-sm font-semibold text-gp-primary" onClick={() => navigate('/orders')}>
+          Back to orders
+        </button>
+      </div>
+    )
+  }
+  return <OrderConfirmedPage order={order} plate={plate} />
+}
+
+function OrderDetailRoute({
+  user,
+  orders,
+  plates,
+  messagesByOrderId,
+  onSendMessage,
+  onUpdateStatus,
+  onCancel,
+  onDecline,
+  onLeaveReview,
+  onReorder,
+}: {
+  user: import('../types').User
+  orders: import('../types').Order[]
+  plates: Map<string, import('../types').Plate>
+  messagesByOrderId: Map<string, import('../types').Message[]>
+  onSendMessage: (orderId: string, body: string) => void
+  onUpdateStatus: (orderId: string, status: import('../types').OrderStatus) => void
+  onCancel: (orderId: string) => void
+  onDecline: (orderId: string) => void
+  onLeaveReview: (orderId: string) => void
+  onReorder: (plateId: string) => void
+}) {
+  const params = useParams()
+  const navigate = useNavigate()
+  const order = orders.find((o) => o.id === params.orderId)
+  if (!order) {
+    return (
+      <div className="gp-container py-16 text-center">
+        <p className="text-sm text-gp-charcoal/65">Order not found.</p>
+        <button type="button" className="gp-focus mt-4 text-sm font-semibold text-gp-primary" onClick={() => navigate('/orders')}>
+          Back to orders
+        </button>
+      </div>
+    )
+  }
+  return (
+    <OrderDetailPage
+      order={order}
+      plate={plates.get(order.plateId)}
+      thread={messagesByOrderId.get(order.id) ?? []}
+      userId={user.id}
+      onCancel={() => onCancel(order.id)}
+      onDecline={() => onDecline(order.id)}
+      onUpdateStatus={(status) => onUpdateStatus(order.id, status)}
+      onSendMessage={(body) => onSendMessage(order.id, body)}
+      onReorder={() => onReorder(order.plateId)}
+      onLeaveReview={order.status === 'Picked up' && !order.reviewed ? () => onLeaveReview(order.id) : undefined}
+    />
+  )
 }

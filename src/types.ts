@@ -88,6 +88,11 @@ export type Plate = {
   /** Optional: cook offers delivery for an extra fee (in cents). */
   deliveryAvailable?: boolean
   deliveryFeeCents?: number
+  /** Max delivery distance from listing ZIP (miles). */
+  deliveryRadiusMiles?: number
+  /** Revealed to buyer after checkout. */
+  pickupAddressLine?: string
+  pickupInstructions?: string
 }
 
 export type OrderStatus = 'Reserved' | 'Cooking' | 'Ready' | 'Picked up' | 'Cancelled'
@@ -112,6 +117,19 @@ export type Order = {
   contactlessInstructions?: string
   /** Tip in cents added at checkout. */
   tipCents?: number
+  /** Portions reserved in this order. */
+  quantity?: number
+  /** Line items before tip/delivery (priceCents * quantity). */
+  subtotalCents?: number
+  /** Buyer contact at checkout. */
+  contactName?: string
+  contactPhone?: string
+  /** Shown to buyer after reserve — exact pickup or delivery handoff. */
+  pickupAddressLine?: string
+  pickupInstructions?: string
+  /** Who cancelled and why. */
+  cancelledBy?: 'buyer' | 'cook'
+  cancelReason?: string
   /** Tracks status transitions in ISO timestamps. */
   timeline?: Partial<Record<OrderStatus, string>>
   /** True once the buyer has left a review. */
@@ -146,6 +164,8 @@ export type Message = {
   createdAtIso: string
 }
 
+export type ReportStatus = 'open' | 'reviewed' | 'closed'
+
 export type Report = {
   id: string
   /** What is being reported. */
@@ -154,6 +174,8 @@ export type Report = {
   details?: string
   createdAtIso: string
   reporterUserId?: string
+  status?: ReportStatus
+  targetLabel?: string
 }
 
 export type SavedAddress = {
@@ -187,7 +209,10 @@ export type User = {
   savedAddresses?: SavedAddress[]
   savedPaymentMethods?: SavedPaymentMethod[]
   /** Cook badge state (mock — `pending` after upload, `verified` after approval). */
-  cookVerification?: 'none' | 'pending' | 'verified'
+  cookVerification?: 'none' | 'pending' | 'verified' | 'rejected'
+  emailVerified?: boolean
+  /** Cooks to notify when they publish a new listing (follow + notify). */
+  notifyOnListingCookIds?: string[]
   /** IDs of cooks or plates this user has hidden/blocked. */
   blockedCookIds?: string[]
   /** ISO timestamp when user accepted terms at signup. */

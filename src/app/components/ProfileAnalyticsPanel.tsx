@@ -1,33 +1,33 @@
-import {
-  BarChart3,
-  ChefHat,
-  DollarSign,
-  Eye,
-  Inbox,
-  ShoppingBag,
-  Star,
-  TrendingUp,
-  UtensilsCrossed,
-} from 'lucide-react'
+import { BarChart3, ChefHat, DollarSign, Inbox, ShoppingBag, UtensilsCrossed } from 'lucide-react'
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import type { Order, Plate } from '../../types'
+import type { Order, Plate, User } from '../../types'
+import { CookDashboardPanel } from './CookDashboardPanel'
 import { formatMoney } from '../../lib/format'
 import { computeProfileAnalytics, hasProfileActivity } from '../lib/profileAnalytics'
 import { useSettings } from '../../state/settings'
 import { Button } from '../../ui/Button'
 
 export function ProfileAnalyticsPanel({
-  userId,
+  user,
   orders,
   plates,
   views,
+  waitlistCountForPlate,
+  onNotifyWaitlist,
+  onOpenOrder,
+  onOpenMessages,
 }: {
-  userId: string
+  user: User
   orders: Order[]
   plates: Plate[]
   views: Record<string, number>
+  waitlistCountForPlate?: (plateId: string) => number
+  onNotifyWaitlist?: (plateId: string) => void
+  onOpenOrder?: (orderId: string) => void
+  onOpenMessages?: (orderId: string) => void
 }) {
+  const userId = user.id
   const navigate = useNavigate()
   const { settings } = useSettings()
   const stats = useMemo(
@@ -37,28 +37,26 @@ export function ProfileAnalyticsPanel({
   const fmt = (cents: number) => formatMoney(cents, settings.currency, settings.locale)
   const active = hasProfileActivity(stats)
 
-  if (!active) {
-    return (
-      <div className="mt-5 rounded-[2rem] bg-white/70 p-8 text-center shadow-natural ring-1 ring-black/5">
-        <BarChart3 className="mx-auto h-10 w-10 text-gp-charcoal/25" aria-hidden />
-        <p className="mt-3 font-display text-lg font-semibold text-gp-charcoal">No activity yet</p>
-        <p className="mx-auto mt-2 max-w-sm text-sm text-gp-charcoal/65">
-          Reserve a plate or publish a listing — your orders, revenue, and listing stats will show up here.
-        </p>
-        <div className="mt-5 flex flex-wrap justify-center gap-2">
-          <Button variant="primary" onClick={() => navigate('/')}>
-            Browse marketplace
-          </Button>
-          <Button variant="ghost" onClick={() => navigate('/cook')}>
-            Create a plate
-          </Button>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="mt-5 space-y-8">
+      {!active ? (
+        <div className="rounded-[2rem] bg-white/70 p-8 text-center shadow-natural ring-1 ring-black/5">
+          <BarChart3 className="mx-auto h-10 w-10 text-gp-charcoal/25" aria-hidden />
+          <p className="mt-3 font-display text-lg font-semibold text-gp-charcoal">No activity yet</p>
+          <p className="mx-auto mt-2 max-w-sm text-sm text-gp-charcoal/65">
+            Reserve a plate or publish a listing — your orders, revenue, and listing stats will show up here.
+          </p>
+          <div className="mt-5 flex flex-wrap justify-center gap-2">
+            <Button variant="primary" onClick={() => navigate('/')}>
+              Browse marketplace
+            </Button>
+            <Button variant="ghost" onClick={() => navigate('/cook')}>
+              Create a plate
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile
           icon={<DollarSign size={18} />}
@@ -105,55 +103,21 @@ export function ProfileAnalyticsPanel({
           <DetailRow label="Reviews written" value={String(stats.buyer.reviewsLeft)} />
         </div>
       </section>
+        </>
+      )}
 
       <section aria-labelledby="analytics-cook-heading">
         <SectionHeading id="analytics-cook-heading" icon={<ChefHat size={18} />} title="As a cook" />
-        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <MiniStat label="Orders received" value={String(stats.cook.received)} />
-          <MiniStat label="Plates sold" value={String(stats.cook.platesSold)} />
-          <MiniStat label="In progress" value={String(stats.cook.inProgress)} />
-          <MiniStat label="Completed pickups" value={String(stats.cook.completed)} />
-        </div>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <DetailRow label="Gross revenue" value={fmt(stats.cook.revenueCents)} emphasize />
-          <DetailRow
-            label="Tips received"
-            value={stats.cook.tipsReceivedCents > 0 ? fmt(stats.cook.tipsReceivedCents) : '—'}
-          />
-        </div>
-        {stats.listings.total > 0 ? (
-          <div className="mt-4">
-            <Button variant="ghost" onClick={() => navigate('/cook/dashboard')}>
-              Open cook dashboard
-            </Button>
-          </div>
-        ) : null}
-      </section>
-
-      <section aria-labelledby="analytics-listings-heading">
-        <SectionHeading id="analytics-listings-heading" icon={<Eye size={18} />} title="Your listings" />
-        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <MiniStat label="Live" value={String(stats.listings.live)} />
-          <MiniStat label="Drafts" value={String(stats.listings.draft)} />
-          <MiniStat label="Sold out" value={String(stats.listings.soldOut)} />
-          <MiniStat label="Listing views" value={String(stats.listings.totalViews)} />
-        </div>
-        <div className="mt-3 grid gap-3 sm:grid-cols-3">
-          <StatTile
-            icon={<TrendingUp size={18} />}
-            label="View → reserve"
-            value={`${stats.listings.conversionPct.toFixed(1)}%`}
-            tone="orange"
-          />
-          <StatTile
-            icon={<Star size={18} />}
-            label="Avg. dish rating"
-            value={stats.listings.ratedListingCount > 0 ? stats.listings.avgRating.toFixed(1) : '—'}
-            hint={
-              stats.listings.ratedListingCount > 0
-                ? `Across ${stats.listings.ratedListingCount} rated listing${stats.listings.ratedListingCount === 1 ? '' : 's'}`
-                : 'No ratings yet'
-            }
+        <div className="mt-4">
+          <CookDashboardPanel
+            user={user}
+            plates={plates}
+            orders={orders}
+            views={views}
+            waitlistCountForPlate={waitlistCountForPlate}
+            onNotifyWaitlist={onNotifyWaitlist}
+            onOpenOrder={onOpenOrder}
+            onOpenMessages={onOpenMessages}
           />
         </div>
       </section>

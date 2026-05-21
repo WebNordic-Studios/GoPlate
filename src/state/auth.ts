@@ -123,6 +123,7 @@ export function useAuth() {
         cookVerification: 'none',
         blockedCookIds: [],
         termsAcceptedAtIso: new Date().toISOString(),
+        emailVerified: false,
       }
       persistAccounts([...accounts, { email, password, user: created }])
       setUser(created)
@@ -201,6 +202,10 @@ export function useAuth() {
     setUser((prev) => (prev ? { ...prev, cookVerification: state } : prev))
   }, [])
 
+  const markEmailVerified = useCallback(() => {
+    setUser((prev) => (prev ? { ...prev, emailVerified: true } : prev))
+  }, [])
+
   const blockCook = useCallback((cookId: string) => {
     setUser((prev) => {
       if (!prev) return prev
@@ -232,6 +237,7 @@ export function useAuth() {
     addPaymentMethod,
     removePaymentMethod,
     setCookVerification,
+    markEmailVerified,
     blockCook,
     unblockCook,
   }

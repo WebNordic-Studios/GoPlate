@@ -24,11 +24,22 @@ export function useReports() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(reports))
   }, [reports])
 
-  const file = useCallback((input: Omit<Report, 'id' | 'createdAtIso'>) => {
-    const report: Report = { ...input, id: uid('report'), createdAtIso: new Date().toISOString() }
+  const file = useCallback((input: Omit<Report, 'id' | 'createdAtIso' | 'status'>) => {
+    const report: Report = {
+      ...input,
+      id: uid('report'),
+      createdAtIso: new Date().toISOString(),
+      status: 'open',
+    }
     setReports((prev) => [report, ...prev])
     return report.id
   }, [])
+
+  const forReporter = useCallback(
+    (userId: string | undefined) =>
+      userId ? reports.filter((r) => r.reporterUserId === userId) : [],
+    [reports],
+  )
 
   const byTarget = useMemo(() => {
     const m = new Map<string, Report[]>()
@@ -41,5 +52,5 @@ export function useReports() {
     return m
   }, [reports])
 
-  return { reports, byTarget, file }
+  return { reports, byTarget, file, forReporter }
 }

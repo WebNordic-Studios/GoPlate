@@ -147,7 +147,7 @@ export function SignUpPage({
               />
               <span className="text-sm text-gp-charcoal/80">
                 I agree to the{' '}
-                <Link to="/" className="font-semibold text-gp-secondary underline">
+                <Link to="/terms" className="font-semibold text-gp-secondary underline">
                   Terms of Service
                 </Link>{' '}
                 and understand home-cooked meals are not from inspected commercial kitchens.

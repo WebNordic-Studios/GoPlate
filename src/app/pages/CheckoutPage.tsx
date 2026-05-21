@@ -13,6 +13,7 @@ import { LoadingSpinner } from '../../ui/LoadingSpinner'
 import { PaymentForm } from '../../ui/PaymentForm'
 import { useSettings } from '../../state/settings'
 import { KitchenDisclaimer } from '../../ui/KitchenDisclaimer'
+import { CancellationPolicyCard } from '../components/CancellationPolicyCard'
 
 const TIP_PERCENTS = [0, 10, 15, 20] as const
 
@@ -22,6 +23,7 @@ export type CheckoutConfirmPayload = {
   tipCents: number
   contactName: string
   contactPhone: string
+  quantity: number
   addressId?: string
   paymentMethodId?: string
 }
@@ -63,6 +65,7 @@ export function CheckoutPage({
 }) {
   const { settings } = useSettings()
   const [delivery, setDelivery] = useState(false)
+  const [quantity, setQuantity] = useState(1)
   const [tipPercent, setTipPercent] = useState<number>(15)
   const [customTip, setCustomTip] = useState('')
   const [form, setForm] = useState<CheckoutFormState>(() => initialForm(user))
@@ -76,14 +79,17 @@ export function CheckoutPage({
     setForm(initialForm(user))
   }, [user])
 
+  const maxQty = plate?.portionsAvailable ?? 1
+
   const computed = useMemo(() => {
     if (!plate) return null
-    const subtotal = plate.priceCents
+    const qty = Math.max(1, Math.min(quantity, plate.portionsAvailable))
+    const subtotal = plate.priceCents * qty
     const deliveryCents = delivery && plate.deliveryAvailable ? plate.deliveryFeeCents ?? 0 : 0
     const customCents = customTip ? Math.round(Number(customTip) * 100) : 0
     const tipCents = customCents > 0 ? customCents : Math.round(subtotal * (tipPercent / 100))
-    return { subtotal, deliveryCents, tipCents, total: subtotal + deliveryCents + tipCents }
-  }, [plate, delivery, customTip, tipPercent])
+    return { qty, subtotal, deliveryCents, tipCents, total: subtotal + deliveryCents + tipCents }
+  }, [plate, delivery, customTip, tipPercent, quantity])
 
   function patchForm(patch: Partial<CheckoutFormState>) {
     setForm((prev) => ({ ...prev, ...patch }))
@@ -109,6 +115,7 @@ export function CheckoutPage({
       delivery,
       contactlessInstructions: form.instructions.trim() || undefined,
       tipCents: computed?.tipCents ?? 0,
+      quantity: computed?.qty ?? 1,
       contactName: form.name.trim(),
       contactPhone: form.phone.trim(),
       addressId: delivery ? form.selectedAddressId ?? undefined : undefined,
@@ -189,6 +196,34 @@ export function CheckoutPage({
               </p>
             ) : null}
 
+            <div className="mt-5 rounded-2xl bg-gp-bg p-4 ring-1 ring-black/5">
+              <div className="text-xs font-semibold text-gp-charcoal/60">Portions</div>
+              <div className="mt-2 flex items-center gap-3">
+                <button
+                  type="button"
+                  disabled={quantity <= 1}
+                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                  className="gp-focus grid h-10 w-10 place-items-center rounded-xl bg-gp-surface text-lg font-bold ring-1 ring-black/10 disabled:opacity-40"
+                  aria-label="Decrease portions"
+                >
+                  −
+                </button>
+                <span className="min-w-[3rem] text-center font-display text-xl font-semibold tabular-nums">
+                  {Math.min(quantity, maxQty)}
+                </span>
+                <button
+                  type="button"
+                  disabled={quantity >= maxQty}
+                  onClick={() => setQuantity((q) => Math.min(maxQty, q + 1))}
+                  className="gp-focus grid h-10 w-10 place-items-center rounded-xl bg-gp-surface text-lg font-bold ring-1 ring-black/10 disabled:opacity-40"
+                  aria-label="Increase portions"
+                >
+                  +
+                </button>
+                <span className="text-xs text-gp-charcoal/55">{maxQty} available</span>
+              </div>
+            </div>
+
             {plate?.deliveryAvailable ? (
               <div className="mt-5 flex items-center justify-between gap-3 rounded-2xl bg-gp-secondary/[0.06] p-4 ring-1 ring-gp-secondary/15">
                 <div className="flex items-start gap-3">
@@ -199,6 +234,9 @@ export function CheckoutPage({
                     </div>
                     <p className="mt-1 text-xs text-gp-charcoal/65">
                       The cook coordinates handoff. ETA matches the pickup window.
+                      {plate.deliveryRadiusMiles
+                        ? ` Within ~${plate.deliveryRadiusMiles} mi of listing.`
+                        : ''}
                     </p>
                   </div>
                 </div>
@@ -257,8 +295,9 @@ export function CheckoutPage({
               <PaymentForm form={form} errors={errors} savedMethods={savedMethods} onChange={patchForm} />
             </div>
 
-            <div className="mt-5">
+            <div className="mt-5 space-y-3">
               <KitchenDisclaimer compact />
+              <CancellationPolicyCard compact />
             </div>
 
             {enableOrderTexts && plate ? (
@@ -315,7 +354,10 @@ export function CheckoutPage({
                   </div>
                 </div>
                 <div className="mt-5 space-y-2 text-sm">
-                  <Row label="Plate" value={formatMoney(computed.subtotal, settings.currency, settings.locale)} />
+                  <Row
+                    label={computed.qty > 1 ? `Plate × ${computed.qty}` : 'Plate'}
+                    value={formatMoney(computed.subtotal, settings.currency, settings.locale)}
+                  />
                   {computed.deliveryCents > 0 ? (
                     <Row
                       label="Delivery"

@@ -1,6 +1,16 @@
 import type { Plate } from '../types'
 
-export const SEED_PLATES: Plate[] = [
+function withPickupDefaults(p: Plate): Plate {
+  return {
+    ...p,
+    pickupAddressLine: p.pickupAddressLine ?? `${p.geo.areaLabel} — message on arrival`,
+    pickupInstructions:
+      p.pickupInstructions ?? 'Text when you arrive. Pick up from the address shown in your order.',
+    deliveryRadiusMiles: p.deliveryRadiusMiles ?? (p.deliveryAvailable ? 3 : undefined),
+  }
+}
+
+const RAW_SEED_PLATES: Plate[] = [
   {
     id: 'seed_ginger_miso_salmon',
     name: 'Ginger-Miso Salmon Bowl',
@@ -224,4 +234,6 @@ export const SEED_PLATES: Plate[] = [
     createdAtIso: '2026-05-11T07:00:00.000Z',
   },
 ]
+
+export const SEED_PLATES: Plate[] = RAW_SEED_PLATES.map(withPickupDefaults)
 

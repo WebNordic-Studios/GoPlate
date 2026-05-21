@@ -1,7 +1,7 @@
-import { BadgeCheck, Clock } from 'lucide-react'
+import { BadgeCheck, Clock, XCircle } from 'lucide-react'
 import type { User } from '../types'
 
-export type CookVerificationDisplay = 'none' | 'pending' | 'verified'
+export type CookVerificationDisplay = 'none' | 'pending' | 'verified' | 'rejected'
 
 export function resolveCookVerification(
   cookId: string,
@@ -10,7 +10,7 @@ export function resolveCookVerification(
   userVerification: User['cookVerification'] | undefined,
 ): CookVerificationDisplay {
   if (currentUserId && cookId === currentUserId && userVerification && userVerification !== 'none') {
-    return userVerification
+    return userVerification === 'rejected' ? 'rejected' : userVerification
   }
   if (cookVerifiedOnPlate) return 'verified'
   return 'none'
@@ -19,6 +19,17 @@ export function resolveCookVerification(
 export function CookVerificationBadge({ status, size = 'sm' }: { status: CookVerificationDisplay; size?: 'xs' | 'sm' }) {
   if (status === 'none') return null
   const sz = size === 'xs' ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'
+  if (status === 'rejected') {
+    return (
+      <span
+        className={`inline-flex items-center gap-1 rounded-full bg-red-100 font-semibold text-red-800 ring-1 ring-red-200 ${sz}`}
+        title="Verification was not approved"
+      >
+        <XCircle size={12} aria-hidden />
+        Not verified
+      </span>
+    )
+  }
   if (status === 'pending') {
     return (
       <span

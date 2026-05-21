@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Check, Clock, Inbox, KeyRound, LogIn, MessageCircle, Package, ShoppingBag, Timer, X } from 'lucide-react'
 import { RUNNING_LATE_TEMPLATE } from '../../lib/orderMessages'
 import type { Message, Order, OrderStatus, Plate, User } from '../../types'
@@ -43,7 +43,10 @@ export function OrdersPage({
   onSendMessage,
   onUpdateStatus,
   onCancel,
+  onDecline,
   onLeaveReview,
+  onOpenOrder,
+  onReorder,
 }: {
   user: User | null
   orders: Order[]
@@ -52,11 +55,23 @@ export function OrdersPage({
   onSendMessage: (orderId: string, body: string) => void
   onUpdateStatus: (orderId: string, status: OrderStatus) => void
   onCancel: (orderId: string) => void
+  onDecline: (orderId: string) => void
   onLeaveReview: (orderId: string) => void
+  onOpenOrder: (orderId: string) => void
+  onReorder?: (plateId: string) => void
 }) {
   const [tab, setTab] = useState<OrderTab>('placed')
   const [openMessagesFor, setOpenMessagesFor] = useState<string | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
   const { settings } = useSettings()
+
+  useEffect(() => {
+    const chat = searchParams.get('chat')
+    if (chat && orders.some((o) => o.id === chat)) {
+      setOpenMessagesFor(chat)
+      setSearchParams({}, { replace: true })
+    }
+  }, [searchParams, orders, setSearchParams])
 
   const { placed, incoming } = useMemo(() => {
     if (!user) return { placed: [] as Order[], incoming: [] as Order[] }
@@ -139,8 +154,11 @@ export function OrdersPage({
             onOpenMessages={setOpenMessagesFor}
             onUpdateStatus={onUpdateStatus}
             onCancel={onCancel}
+            onDecline={onDecline}
             onLeaveReview={onLeaveReview}
             onSendMessage={onSendMessage}
+            onOpenOrder={onOpenOrder}
+            onReorder={onReorder}
           />
         ) : (
           <EmptyState
@@ -247,8 +265,11 @@ function OrderListSections({
   onOpenMessages,
   onUpdateStatus,
   onCancel,
+  onDecline,
   onLeaveReview,
   onSendMessage,
+  onOpenOrder,
+  onReorder,
 }: {
   inProgress: Order[]
   finished: Order[]
@@ -259,8 +280,11 @@ function OrderListSections({
   onOpenMessages: (orderId: string) => void
   onUpdateStatus: (orderId: string, status: OrderStatus) => void
   onCancel: (orderId: string) => void
+  onDecline: (orderId: string) => void
   onLeaveReview: (orderId: string) => void
   onSendMessage: (orderId: string, body: string) => void
+  onOpenOrder: (orderId: string) => void
+  onReorder?: (plateId: string) => void
 }) {
   return (
     <div className="mt-6 space-y-8">
@@ -286,6 +310,8 @@ function OrderListSections({
                 onOpenMessages={() => onOpenMessages(o.id)}
                 onUpdateStatus={onUpdateStatus}
                 onCancel={onCancel}
+                onDecline={onDecline}
+                onOpenOrder={onOpenOrder}
                 onSendRunningLate={(orderId) => onSendMessage(orderId, RUNNING_LATE_TEMPLATE)}
               />
             ))}
@@ -305,6 +331,7 @@ function OrderListSections({
           messagesByOrderId={messagesByOrderId}
           onOpenMessages={onOpenMessages}
           onLeaveReview={onLeaveReview}
+          onReorder={onReorder}
         />
       ) : null}
     </div>
@@ -320,6 +347,8 @@ function OrderCard({
   onOpenMessages,
   onUpdateStatus,
   onCancel,
+  onDecline,
+  onOpenOrder,
   onSendRunningLate,
 }: {
   order: Order
@@ -330,6 +359,8 @@ function OrderCard({
   onOpenMessages: () => void
   onUpdateStatus: (orderId: string, status: OrderStatus) => void
   onCancel: (orderId: string) => void
+  onDecline: (orderId: string) => void
+  onOpenOrder: (orderId: string) => void
   onSendRunningLate?: (orderId: string) => void
 }) {
   const cancelled = o.status === 'Cancelled'
@@ -385,6 +416,14 @@ function OrderCard({
             {o.tipCents ? (
               <div className="mt-1 text-xs font-semibold text-gp-primary">
                 Tip {formatMoney(o.tipCents, settings.currency, settings.locale)}
+              </div>
+            ) : null}
+            {(o.quantity ?? 1) > 1 ? (
+              <div className="mt-1 text-xs text-gp-charcoal/55">{o.quantity} portions</div>
+            ) : null}
+            {!isIncoming && o.pickupAddressLine && !cancelled ? (
+              <div className="mt-2 rounded-xl bg-gp-primary/10 px-2.5 py-2 text-xs text-gp-charcoal/80 ring-1 ring-gp-primary/15">
+                <span className="font-semibold text-gp-primary">Pickup:</span> {o.pickupAddressLine}
               </div>
             ) : null}
           </div>
@@ -444,6 +483,11 @@ function OrderCard({
                 Cancel
               </Button>
             ) : null}
+            {isIncoming && o.status === 'Reserved' ? (
+              <Button variant="ghost" onClick={() => onDecline(o.id)} leftIcon={<X size={14} />}>
+                Decline
+              </Button>
+            ) : null}
             {isIncoming && onSendRunningLate ? (
               <Button
                 variant="ghost"
@@ -455,6 +499,10 @@ function OrderCard({
             ) : null}
           </>
         ) : null}
+
+        <Button variant="ghost" onClick={() => onOpenOrder(o.id)}>
+          View details
+        </Button>
 
         <Button variant="ghost" onClick={onOpenMessages} leftIcon={<MessageCircle size={14} />}>
           Messages

@@ -3,6 +3,7 @@ import { SEED_PLATES } from '../data/mockPlates'
 import type { Order, OrderStatus, Plate } from '../types'
 import { geoForZip } from '../lib/geo'
 import { generateHandoffCode } from '../lib/format'
+import { pickupDetailsForPlate } from '../lib/pickup'
 
 const STORAGE_KEY = 'goplate.marketplace.v1'
 const VIEWS_STORAGE_KEY = 'goplate.plateViews.v1'
@@ -25,8 +26,29 @@ function safeParseViews(json: string | null): Record<string, number> {
   if (!json) return {}
   try {
     const obj = JSON.parse(json) as unknown
-    if (obj && typeof obj === 'object') return obj as Record<string, number>
-    return {}
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return {}
+
+    const entries = Object.entries(obj as Record<string, unknown>)
+    if (entries.length === 0) return {}
+
+    const firstVal = entries[0]?.[1]
+    if (firstVal && typeof firstVal === 'object' && !Array.isArray(firstVal)) {
+      const merged: Record<string, number> = {}
+      for (const [, bucket] of entries) {
+        if (bucket && typeof bucket === 'object' && !Array.isArray(bucket)) {
+          for (const [plateId, count] of Object.entries(bucket as Record<string, unknown>)) {
+            if (typeof count === 'number') merged[plateId] = (merged[plateId] ?? 0) + count
+          }
+        }
+      }
+      return merged
+    }
+
+    const out: Record<string, number> = {}
+    for (const [plateId, count] of entries) {
+      if (typeof count === 'number') out[plateId] = count
+    }
+    return out
   } catch {
     return {}
   }
@@ -162,19 +184,27 @@ export function useMarketplace() {
         delivery?: boolean
         contactlessInstructions?: string
         tipCents?: number
+        quantity?: number
+        contactName?: string
+        contactPhone?: string
       },
     ) => {
       const plate = byId.get(plateId)
       if (!plate) return null
-      if (plate.portionsAvailable <= 0) return null
       if (plate.isDraft) return null
+      const qty = Math.max(1, Math.min(opts?.quantity ?? 1, plate.portionsAvailable))
+      if (qty > plate.portionsAvailable) return null
 
       setPlates((prev) =>
-        prev.map((p) => (p.id === plateId ? { ...p, portionsAvailable: p.portionsAvailable - 1 } : p)),
+        prev.map((p) =>
+          p.id === plateId ? { ...p, portionsAvailable: Math.max(0, p.portionsAvailable - qty) } : p,
+        ),
       )
 
       const nowIso = new Date().toISOString()
       const delivery = Boolean(opts?.delivery && plate.deliveryAvailable)
+      const pickup = pickupDetailsForPlate(plate)
+      const subtotalCents = plate.priceCents * qty
       const order: Order = {
         id: uid('order'),
         plateId,
@@ -182,6 +212,8 @@ export function useMarketplace() {
         buyerId: opts?.buyerId,
         cookId: plate.cook.id,
         priceCents: plate.priceCents,
+        subtotalCents,
+        quantity: qty,
         pickupWindow: plate.pickupWindow,
         createdAtIso: nowIso,
         status: 'Reserved',
@@ -190,12 +222,46 @@ export function useMarketplace() {
         deliveryFeeCents: delivery ? plate.deliveryFeeCents ?? 0 : undefined,
         contactlessInstructions: opts?.contactlessInstructions?.trim() || undefined,
         tipCents: opts?.tipCents && opts.tipCents > 0 ? opts.tipCents : undefined,
+        contactName: opts?.contactName?.trim() || undefined,
+        contactPhone: opts?.contactPhone?.trim() || undefined,
+        pickupAddressLine: pickup.pickupAddressLine,
+        pickupInstructions: pickup.pickupInstructions,
         timeline: { Reserved: nowIso },
       }
       setOrders((prev) => [order, ...prev])
       return order.id
     },
     [byId],
+  )
+
+  const cancelOrder = useCallback((orderId: string, by: 'buyer' | 'cook', reason?: string) => {
+    setOrders((prev) => {
+      const order = prev.find((o) => o.id === orderId)
+      if (!order || order.status === 'Picked up' || order.status === 'Cancelled') return prev
+      const qty = order.quantity ?? 1
+      setPlates((plates) =>
+        plates.map((p) =>
+          p.id === order.plateId ? { ...p, portionsAvailable: p.portionsAvailable + qty } : p,
+        ),
+      )
+      const now = new Date().toISOString()
+      return prev.map((o) =>
+        o.id === orderId
+          ? {
+              ...o,
+              status: 'Cancelled',
+              cancelledBy: by,
+              cancelReason: reason?.trim() || undefined,
+              timeline: { ...(o.timeline ?? {}), Cancelled: now },
+            }
+          : o,
+      )
+    })
+  }, [])
+
+  const getOrder = useCallback(
+    (orderId: string) => orders.find((o) => o.id === orderId) ?? null,
+    [orders],
   )
 
   const updateOrderStatus = useCallback((orderId: string, status: OrderStatus) => {
@@ -233,6 +299,8 @@ export function useMarketplace() {
     updatePlate,
     removePlate,
     reservePlate,
+    cancelOrder,
+    getOrder,
     updateOrderStatus,
     markOrderReviewed,
     clearOrderReviewed,

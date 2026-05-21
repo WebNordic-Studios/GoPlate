@@ -1,20 +1,29 @@
 import { Bell } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import type { Order, User } from '../../types'
-import { buildTimelineNotifications } from '../lib/orderNotifications'
+import type { User } from '../../types'
+import type { AppNotification } from '../../state/notificationsFeed'
 import { HeaderUnreadBadge } from './HeaderUnreadBadge'
 
 type Props = {
   open: boolean
   onOpenChange: (open: boolean) => void
   user: User | null
-  orders: Order[]
-  /** Approximate unread: orders marked Ready for pickup (prototype). */
+  notifications: AppNotification[]
   badgeCount?: number
+  isRead: (id: string) => boolean
+  onMarkRead: (id: string) => void
 }
 
-export function NotificationsDropdown({ open, onOpenChange, user, orders, badgeCount = 0 }: Props) {
+export function NotificationsDropdown({
+  open,
+  onOpenChange,
+  user,
+  notifications,
+  badgeCount = 0,
+  isRead,
+  onMarkRead,
+}: Props) {
   const navigate = useNavigate()
   const location = useLocation()
   const rootRef = useRef<HTMLDivElement>(null)
@@ -36,8 +45,6 @@ export function NotificationsDropdown({ open, onOpenChange, user, orders, badgeC
     document.addEventListener('mousedown', onDoc)
     return () => document.removeEventListener('mousedown', onDoc)
   }, [open, onOpenChange])
-
-  const items = buildTimelineNotifications(user ? orders : [])
 
   return (
     <div className="relative" ref={rootRef}>
@@ -64,12 +71,12 @@ export function NotificationsDropdown({ open, onOpenChange, user, orders, badgeC
         >
           <div className="border-b border-black/[0.07] px-4 py-3 dark:border-white/10">
             <p className="font-display text-[0.95rem] font-semibold tracking-tight">Notifications</p>
-            <p className="mt-0.5 text-[11px] font-medium text-gp-charcoal/50">Order & pickup updates</p>
+            <p className="mt-0.5 text-[11px] font-medium text-gp-charcoal/50">Orders, messages, waitlist & more</p>
           </div>
 
           {!user ? (
             <div className="space-y-3 px-4 py-5 text-center">
-              <p className="text-sm leading-snug text-gp-charcoal/70">Sign in to see your order updates here.</p>
+              <p className="text-sm leading-snug text-gp-charcoal/70">Sign in to see your updates here.</p>
               <button
                 type="button"
                 onClick={() => {
@@ -81,43 +88,57 @@ export function NotificationsDropdown({ open, onOpenChange, user, orders, badgeC
                 Sign in
               </button>
             </div>
-          ) : !items.length ? (
+          ) : !notifications.length ? (
             <div className="px-4 py-8 text-center">
               <p className="text-sm font-medium text-gp-charcoal">You're all caught up</p>
               <p className="mt-1.5 text-xs leading-relaxed text-gp-charcoal/55">
-                Reserve a dish and we’ll post status changes here.
+                Reserve a dish or follow cooks to get updates here.
               </p>
             </div>
           ) : (
-            <ul className="max-h-[min(22rem,65vh)] divide-y divide-black/[0.06] overflow-y-auto overscroll-contain dark:divide-white/10" role="list">
-              {items.slice(0, 25).map((row) => (
-                <li key={row.id}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onOpenChange(false)
-                      navigate('/orders')
-                    }}
-                    className="gp-focus w-full px-4 py-3 text-left transition hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
-                  >
-                    <div className="flex items-start gap-2.5">
-                      <span className="mt-0.5 inline-block h-2 w-2 shrink-0 rounded-full bg-gp-primary/80" aria-hidden />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[13px] font-semibold leading-tight text-gp-charcoal">{row.status}</p>
-                        <p className="mt-0.5 text-[12px] leading-snug text-gp-charcoal/65">{row.caption}</p>
-                        <p className="mt-1.5 text-[10px] font-medium uppercase tracking-wide text-gp-charcoal/40">
-                          {new Date(row.createdAtIso).toLocaleString(undefined, {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: 'numeric',
-                            minute: '2-digit',
-                          })}
-                        </p>
+            <ul
+              className="max-h-[min(22rem,65vh)] divide-y divide-black/[0.06] overflow-y-auto overscroll-contain dark:divide-white/10"
+              role="list"
+            >
+              {notifications.slice(0, 30).map((row) => {
+                const unread = !isRead(row.id)
+                return (
+                  <li key={row.id}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onMarkRead(row.id)
+                        onOpenChange(false)
+                        if (row.href) navigate(row.href)
+                        else navigate('/orders')
+                      }}
+                      className={`gp-focus w-full px-4 py-3 text-left transition hover:bg-black/[0.04] dark:hover:bg-white/[0.06] ${
+                        unread ? 'bg-gp-primary/[0.04]' : ''
+                      }`}
+                    >
+                      <div className="flex items-start gap-2.5">
+                        {unread ? (
+                          <span className="mt-0.5 inline-block h-2 w-2 shrink-0 rounded-full bg-gp-primary" aria-hidden />
+                        ) : (
+                          <span className="mt-0.5 inline-block h-2 w-2 shrink-0 rounded-full bg-transparent" aria-hidden />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[13px] font-semibold leading-tight text-gp-charcoal">{row.title}</p>
+                          <p className="mt-0.5 line-clamp-2 text-[12px] leading-snug text-gp-charcoal/65">{row.body}</p>
+                          <p className="mt-1.5 text-[10px] font-medium uppercase tracking-wide text-gp-charcoal/40">
+                            {new Date(row.createdAtIso).toLocaleString(undefined, {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: 'numeric',
+                              minute: '2-digit',
+                            })}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  </button>
-                </li>
-              ))}
+                    </button>
+                  </li>
+                )
+              })}
             </ul>
           )}
         </div>

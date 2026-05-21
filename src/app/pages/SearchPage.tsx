@@ -1,8 +1,9 @@
 import { Search, User } from 'lucide-react'
 import { useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import type { Plate } from '../../types'
+import type { DietaryTag, Plate } from '../../types'
 import { PlateCard } from '../components/PlateCard'
+import { SearchFiltersBar } from '../components/SearchFiltersBar'
 import { EmptyState } from '../../ui/EmptyState'
 
 type CookResult = {
@@ -23,7 +24,25 @@ export function SearchPage({
 }) {
   const [params, setParams] = useSearchParams()
   const q = (params.get('q') ?? '').trim()
+  const maxPrice = params.get('maxPrice') ?? ''
+  const maxDistance = params.get('maxDist') ?? ''
+  const dietaryParam = params.get('dietary') ?? ''
+  const dietary = useMemo(() => {
+    const tags = dietaryParam.split(',').filter(Boolean) as DietaryTag[]
+    return new Set(tags)
+  }, [dietaryParam])
   const navigate = useNavigate()
+
+  function patchParams(patch: Record<string, string | null>) {
+    setParams((prev) => {
+      const p = new URLSearchParams(prev)
+      for (const [key, val] of Object.entries(patch)) {
+        if (val == null || val === '') p.delete(key)
+        else p.set(key, val)
+      }
+      return p
+    })
+  }
 
   const cooks = useMemo(() => {
     const map = new Map<string, CookResult>()
@@ -48,22 +67,40 @@ export function SearchPage({
   }, [plates])
 
   const filteredPlates = useMemo(() => {
-    if (!q) return plates
-    const s = q.toLowerCase()
-    return plates.filter((p) => {
-      const hay = [
-        p.name,
-        p.category,
-        p.cook.name,
-        p.cooksNote,
-        p.ingredients.join(' '),
-        p.geo?.areaLabel ?? '',
-      ]
-        .join(' ')
-        .toLowerCase()
-      return hay.includes(s)
-    })
-  }, [plates, q])
+    let list = plates
+    if (q) {
+      const s = q.toLowerCase()
+      list = list.filter((p) => {
+        const hay = [
+          p.name,
+          p.category,
+          p.cook.name,
+          p.cooksNote,
+          p.ingredients.join(' '),
+          p.geo?.areaLabel ?? '',
+          ...(p.dietary ?? []),
+        ]
+          .join(' ')
+          .toLowerCase()
+        return hay.includes(s)
+      })
+    }
+    const maxCents = maxPrice.trim() ? Math.round(Number(maxPrice) * 100) : null
+    if (maxCents != null && Number.isFinite(maxCents) && maxCents > 0) {
+      list = list.filter((p) => p.priceCents <= maxCents)
+    }
+    const maxMi = maxDistance.trim() ? Number(maxDistance) : null
+    if (maxMi != null && Number.isFinite(maxMi) && maxMi > 0) {
+      list = list.filter((p) => p.distanceMiles <= maxMi)
+    }
+    if (dietary.size > 0) {
+      list = list.filter((p) => {
+        const tags = p.dietary ?? []
+        return [...dietary].every((d) => tags.includes(d))
+      })
+    }
+    return list
+  }, [plates, q, maxPrice, maxDistance, dietary])
 
   const filteredCooks = useMemo(() => {
     if (!q) return cooks
@@ -104,7 +141,22 @@ export function SearchPage({
         </div>
       </div>
 
-      {!q ? (
+      <SearchFiltersBar
+        maxPrice={maxPrice}
+        maxDistance={maxDistance}
+        dietary={dietary}
+        onMaxPriceChange={(v) => patchParams({ maxPrice: v.trim() || null })}
+        onMaxDistanceChange={(v) => patchParams({ maxDist: v.trim() || null })}
+        onToggleDietary={(tag) => {
+          const next = new Set(dietary)
+          if (next.has(tag)) next.delete(tag)
+          else next.add(tag)
+          patchParams({ dietary: next.size ? [...next].join(',') : null })
+        }}
+        onClear={() => patchParams({ maxPrice: null, maxDist: null, dietary: null })}
+      />
+
+      {!q && !maxPrice && !maxDistance && dietary.size === 0 ? (
         <div className="mt-8">
           <EmptyState
             icon={<Search size={20} />}
@@ -114,7 +166,11 @@ export function SearchPage({
         </div>
       ) : null}
 
-      <div className={`mt-6 grid gap-4 lg:grid-cols-3 ${!q ? 'hidden' : ''}`}>
+      <div
+        className={`mt-6 grid gap-4 lg:grid-cols-3 ${
+          !q && !maxPrice && !maxDistance && dietary.size === 0 ? 'hidden' : ''
+        }`}
+      >
         <div className="lg:col-span-1">
           <div className="rounded-[2rem] bg-white/70 p-5 shadow-natural ring-1 ring-black/5">
             <div className="flex items-center gap-2 font-display text-lg font-semibold">

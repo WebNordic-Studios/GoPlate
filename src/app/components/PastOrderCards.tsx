@@ -1,4 +1,4 @@
-import { Check, CheckCircle2, History, MessageCircle, Package, Star, X, XCircle } from 'lucide-react'
+import { Check, CheckCircle2, History, MessageCircle, Package, RefreshCw, Star, X, XCircle } from 'lucide-react'
 import type { Message, Order, Plate } from '../../types'
 import { formatMoney } from '../../lib/format'
 import { useSettings } from '../../state/settings'
@@ -13,6 +13,7 @@ export function PastOrdersSection({
   messagesByOrderId,
   onOpenMessages,
   onLeaveReview,
+  onReorder,
 }: {
   finished: Order[]
   tab: OrderTab
@@ -20,6 +21,7 @@ export function PastOrdersSection({
   messagesByOrderId: Map<string, Message[]>
   onOpenMessages: (orderId: string) => void
   onLeaveReview: (orderId: string) => void
+  onReorder?: (plateId: string) => void
 }) {
   const completed = finished.filter((o) => o.status === 'Picked up')
   const cancelled = finished.filter((o) => o.status === 'Cancelled')
@@ -40,7 +42,16 @@ export function PastOrdersSection({
       </div>
 
       {completed.length > 0 ? (
-        <PastOrderGroup label="Completed" orders={completed} tab={tab} plates={plates} messagesByOrderId={messagesByOrderId} onOpenMessages={onOpenMessages} onLeaveReview={onLeaveReview} />
+        <PastOrderGroup
+          label="Completed"
+          orders={completed}
+          tab={tab}
+          plates={plates}
+          messagesByOrderId={messagesByOrderId}
+          onOpenMessages={onOpenMessages}
+          onLeaveReview={onLeaveReview}
+          onReorder={onReorder}
+        />
       ) : null}
 
       {cancelled.length > 0 ? (
@@ -52,6 +63,7 @@ export function PastOrdersSection({
           messagesByOrderId={messagesByOrderId}
           onOpenMessages={onOpenMessages}
           onLeaveReview={onLeaveReview}
+          onReorder={onReorder}
           className={completed.length > 0 ? 'mt-6' : 'mt-5'}
         />
       ) : null}
@@ -67,6 +79,7 @@ function PastOrderGroup({
   messagesByOrderId,
   onOpenMessages,
   onLeaveReview,
+  onReorder,
   className = 'mt-5',
 }: {
   label: string
@@ -76,6 +89,7 @@ function PastOrderGroup({
   messagesByOrderId: Map<string, Message[]>
   onOpenMessages: (orderId: string) => void
   onLeaveReview: (orderId: string) => void
+  onReorder?: (plateId: string) => void
   className?: string
 }) {
   return (
@@ -91,6 +105,7 @@ function PastOrderGroup({
               messagesByOrderId={messagesByOrderId}
               onOpenMessages={() => onOpenMessages(o.id)}
               onLeaveReview={onLeaveReview}
+              onReorder={onReorder}
             />
           </li>
         ))}
@@ -106,6 +121,7 @@ function FinishedOrderCard({
   messagesByOrderId,
   onOpenMessages,
   onLeaveReview,
+  onReorder,
 }: {
   order: Order
   plate: Plate | undefined
@@ -113,6 +129,7 @@ function FinishedOrderCard({
   messagesByOrderId: Map<string, Message[]>
   onOpenMessages: () => void
   onLeaveReview: (orderId: string) => void
+  onReorder?: (plateId: string) => void
 }) {
   const { settings } = useSettings()
   const cancelled = o.status === 'Cancelled'
@@ -214,6 +231,16 @@ function FinishedOrderCard({
             <CheckCircle2 size={12} aria-hidden />
             Reviewed
           </span>
+        ) : null}
+        {!isIncoming && !cancelled && onReorder ? (
+          <Button
+            variant="ghost"
+            onClick={() => onReorder(o.plateId)}
+            leftIcon={<RefreshCw size={14} />}
+            className="!py-1.5 !text-xs"
+          >
+            Order again
+          </Button>
         ) : null}
       </div>
     </article>

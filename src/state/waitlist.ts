@@ -7,8 +7,25 @@ type WaitlistState = Record<string, string[]>
 function safeParse(json: string | null): WaitlistState {
   if (!json) return {}
   try {
-    const obj = JSON.parse(json) as WaitlistState
-    return obj && typeof obj === 'object' ? obj : {}
+    const obj = JSON.parse(json) as unknown
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return {}
+
+    const o = obj as Record<string, unknown>
+    const out: WaitlistState = {}
+
+    for (const [key, value] of Object.entries(o)) {
+      if (Array.isArray(value) && value.every((x) => typeof x === 'string')) {
+        if (key.startsWith('user_')) {
+          for (const plateId of value) {
+            const list = out[plateId] ?? []
+            if (!list.includes(key)) out[plateId] = [...list, key]
+          }
+        } else {
+          out[key] = value as string[]
+        }
+      }
+    }
+    return out
   } catch {
     return {}
   }
@@ -63,5 +80,9 @@ export function useWaitlist(userId: string | null) {
 
   const countForPlate = useCallback((plateId: string) => state[plateId]?.length ?? 0, [state])
 
-  return { join, leave, isJoined, countForPlate }
+  const listPlateIdsForUser = useCallback(() => Array.from(joinedPlateIds), [joinedPlateIds])
+
+  const waitersForPlate = useCallback((plateId: string) => state[plateId] ?? [], [state])
+
+  return { join, leave, isJoined, countForPlate, listPlateIdsForUser, waitersForPlate, state }
 }

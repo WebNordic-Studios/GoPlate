@@ -2,6 +2,7 @@ import {
   AlertTriangle,
   BadgeCheck,
   Camera,
+  Check,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -17,9 +18,11 @@ import {
   X,
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import type { Allergen, Cuisine, DietaryTag, Plate, SpiceLevel, User } from '../../types'
 import { ALLERGENS, CUISINES, DIETARY_TAGS } from '../../lib/taxonomy'
 import { geoForZip } from '../../lib/geo'
+import { readAsDataUrl } from '../../lib/readAsDataUrl'
 import { attachHorizontalWheelScroll } from '../../lib/horizontalWheelScroll'
 import { Button } from '../../ui/Button'
 import { KitchenDisclaimer } from '../../ui/KitchenDisclaimer'
@@ -64,6 +67,11 @@ export function StartCookingPage({
   const [spice, setSpice] = useState<SpiceLevel>(1)
   const [delivery, setDelivery] = useState(false)
   const [deliveryFee, setDeliveryFee] = useState('3.99')
+  const [deliveryRadiusMiles, setDeliveryRadiusMiles] = useState('3')
+  const [pickupAddressLine, setPickupAddressLine] = useState('')
+  const [pickupInstructions, setPickupInstructions] = useState(
+    'Text when you arrive. Pickup from the side door if listed.',
+  )
   const [scheduleAt, setScheduleAt] = useState<string>('')
   const [verifyOpen, setVerifyOpen] = useState(false)
   const [cloneOpen, setCloneOpen] = useState(false)
@@ -79,6 +87,8 @@ export function StartCookingPage({
     if (step === 4) return noAllergens || allergens.size > 0
     return false
   }, [step, photos.length, name, price, zip, readyFrom, readyTo, portions, ingredients, cooksNote, noAllergens, allergens.size])
+
+  const allergenDisclosureOk = noAllergens || allergens.size > 0
 
   async function addPhotoFile(file: File) {
     if (photos.length >= 4) return
@@ -132,10 +142,14 @@ export function StartCookingPage({
       spice,
       deliveryAvailable: delivery,
       deliveryFeeCents: delivery ? Math.round(Number(deliveryFee) * 100) : undefined,
+      deliveryRadiusMiles: delivery ? Number(deliveryRadiusMiles) || 3 : undefined,
+      pickupAddressLine: pickupAddressLine.trim() || undefined,
+      pickupInstructions: pickupInstructions.trim() || undefined,
     }
   }
 
   function publishNow() {
+    if (!user.emailVerified) return
     onCreatePlate(buildPayload())
   }
 
@@ -200,6 +214,15 @@ export function StartCookingPage({
           onOpen={() => setVerifyOpen(true)}
         />
       </div>
+
+      {!user.emailVerified ? (
+        <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-200/80">
+          Verify your email before publishing listings.{' '}
+          <Link to="/verify-email" className="font-semibold text-gp-secondary underline">
+            Verify now
+          </Link>
+        </div>
+      ) : null}
 
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
@@ -335,14 +358,24 @@ export function StartCookingPage({
                         </button>
                       </div>
                       {delivery ? (
-                        <label className="mt-3 block">
-                          <div className="text-xs font-semibold text-gp-charcoal/60">Delivery fee (USD)</div>
-                          <input
-                            value={deliveryFee}
-                            onChange={(e) => setDeliveryFee(e.target.value)}
-                            className="gp-focus mt-1 w-full rounded-2xl bg-gp-surface px-3 py-3 text-sm font-semibold ring-1 ring-black/5"
-                          />
-                        </label>
+                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                          <label className="block">
+                            <div className="text-xs font-semibold text-gp-charcoal/60">Delivery fee (USD)</div>
+                            <input
+                              value={deliveryFee}
+                              onChange={(e) => setDeliveryFee(e.target.value)}
+                              className="gp-focus mt-1 w-full rounded-2xl bg-gp-surface px-3 py-3 text-sm font-semibold ring-1 ring-black/5"
+                            />
+                          </label>
+                          <label className="block">
+                            <div className="text-xs font-semibold text-gp-charcoal/60">Delivery radius (mi)</div>
+                            <input
+                              value={deliveryRadiusMiles}
+                              onChange={(e) => setDeliveryRadiusMiles(e.target.value)}
+                              className="gp-focus mt-1 w-full rounded-2xl bg-gp-surface px-3 py-3 text-sm font-semibold ring-1 ring-black/5"
+                            />
+                          </label>
+                        </div>
                       ) : null}
                     </div>
                   </div>
@@ -368,6 +401,24 @@ export function StartCookingPage({
                     <input
                       value={readyTo}
                       onChange={(e) => setReadyTo(e.target.value)}
+                      className="gp-focus mt-1 w-full rounded-2xl bg-gp-surface px-3 py-3 text-sm font-semibold ring-1 ring-black/5"
+                    />
+                  </label>
+                  <label className="block sm:col-span-2">
+                    <div className="text-xs font-semibold text-gp-charcoal/60">Pickup address (shown after order)</div>
+                    <input
+                      value={pickupAddressLine}
+                      onChange={(e) => setPickupAddressLine(e.target.value)}
+                      placeholder="e.g. 142 Oak St, side door"
+                      className="gp-focus mt-1 w-full rounded-2xl bg-gp-surface px-3 py-3 text-sm font-semibold ring-1 ring-black/5"
+                    />
+                  </label>
+                  <label className="block sm:col-span-2">
+                    <div className="text-xs font-semibold text-gp-charcoal/60">Pickup instructions</div>
+                    <textarea
+                      value={pickupInstructions}
+                      onChange={(e) => setPickupInstructions(e.target.value)}
+                      rows={2}
                       className="gp-focus mt-1 w-full rounded-2xl bg-gp-surface px-3 py-3 text-sm font-semibold ring-1 ring-black/5"
                     />
                   </label>
@@ -467,14 +518,49 @@ export function StartCookingPage({
                     </div>
                   </div>
 
-                  <label className="flex items-center justify-between gap-3 rounded-2xl bg-gp-bg/60 p-3 ring-1 ring-black/5">
-                    <span className="text-sm font-semibold">This plate contains no common allergens</span>
+                  <label
+                    className={`flex cursor-pointer items-start gap-3 rounded-2xl p-4 text-slate-900 ring-2 transition dark:text-gp-charcoal ${
+                      noAllergens
+                        ? 'bg-emerald-50 ring-emerald-600/35 dark:bg-gp-secondary/25 dark:ring-gp-secondary/50'
+                        : allergenDisclosureOk
+                          ? 'bg-gp-surface ring-slate-300 dark:ring-white/15'
+                          : 'bg-amber-50 ring-amber-500/60 dark:bg-amber-950/50 dark:ring-amber-500/40'
+                    }`}
+                  >
                     <input
                       type="checkbox"
                       checked={noAllergens}
-                      onChange={(e) => setNoAllergens(e.target.checked)}
-                      className="h-5 w-5 accent-gp-secondary"
+                      onChange={(e) => {
+                        setNoAllergens(e.target.checked)
+                        if (e.target.checked) setAllergens(new Set())
+                      }}
+                      className="peer sr-only"
                     />
+                    <span
+                      aria-hidden
+                      className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md border-2 transition peer-focus-visible:ring-2 peer-focus-visible:ring-gp-primary/40 ${
+                        noAllergens
+                          ? 'border-gp-secondary bg-gp-secondary text-white'
+                          : 'border-gp-charcoal/50 bg-gp-surface text-transparent dark:border-white/40'
+                      }`}
+                    >
+                      <Check size={14} strokeWidth={3} />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold text-slate-900 dark:text-inherit">
+                        This plate contains no common allergens
+                      </span>
+                      <span
+                        className={`mt-1 block text-xs ${
+                          !allergenDisclosureOk
+                            ? 'text-amber-950 dark:text-amber-100'
+                            : 'text-slate-600 dark:text-gp-charcoal/85'
+                        }`}
+                      >
+                        Required to publish: check this box <span className="font-semibold">or</span> select every allergen
+                        present below.
+                      </span>
+                    </span>
                   </label>
 
                   <div className={`rounded-2xl bg-gp-bg/60 p-4 ring-1 ring-black/5 ${noAllergens ? 'opacity-50' : ''}`}>
@@ -545,6 +631,15 @@ export function StartCookingPage({
                   </Button>
                 ) : (
                   <div className="flex w-full max-w-md flex-col items-end gap-3">
+                    {!allergenDisclosureOk ? (
+                      <div
+                        className="w-full rounded-2xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-950 ring-1 ring-amber-400/80 dark:bg-amber-950/50 dark:text-amber-100 dark:ring-amber-500/40"
+                        role="status"
+                      >
+                        Before you publish: check &quot;This plate contains no common allergens&quot; above, or tap each
+                        allergen your dish includes.
+                      </div>
+                    ) : null}
                     <KitchenDisclaimer compact />
                     <div className="flex flex-wrap items-center justify-end gap-2">
                       <Button variant="ghost" disabled={!canNext} onClick={saveDraft} leftIcon={<Save size={16} />}>
@@ -557,9 +652,10 @@ export function StartCookingPage({
                       ) : null}
                       <Button
                         variant="secondary"
-                        disabled={!canNext}
+                        disabled={!canNext || !user.emailVerified}
                         onClick={publishNow}
                         leftIcon={<CookingPot size={18} />}
+                        title={!user.emailVerified ? 'Verify email to publish' : undefined}
                       >
                         Publish now
                       </Button>
@@ -754,14 +850,4 @@ function Stepper({ step }: { step: number }) {
     </div>
   )
 }
-
-function readAsDataUrl(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onerror = () => reject(new Error('Failed to read file'))
-    reader.onload = () => resolve(String(reader.result))
-    reader.readAsDataURL(file)
-  })
-}
-
 

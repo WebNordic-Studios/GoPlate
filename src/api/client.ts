@@ -12,6 +12,9 @@ export type MarketplaceApi = {
       delivery?: boolean
       contactlessInstructions?: string
       tipCents?: number
+      quantity?: number
+      contactName?: string
+      contactPhone?: string
     },
   ) => Promise<string | null>
   updatePlate: (id: string, patch: Partial<Plate>) => Promise<Plate | null>
